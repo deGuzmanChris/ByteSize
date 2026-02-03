@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import InventoryPage from "./InventoryPage";
 
-export default function Dashboard() {
+export default function Home() {
   const [activeTab, setActiveTab] = useState("inventory");
 
   const tabs = [
@@ -34,19 +35,7 @@ export default function Dashboard() {
 
       
       <main className="flex-1 p-8 overflow-y-auto">
-        {activeTab === "inventory" && (
-          <section>
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold text-black">Inventory</h1>
-              <div className="flex gap-4">
-                <button className="px-4 py-2 bg-[#8fa481] text-white rounded shadow hover:bg-[#7a926e] transition">Create Area</button>
-                <button className="px-4 py-2 bg-[#e6cfa7] text-black rounded shadow hover:bg-[#d6be97] transition">Edit Area</button>
-                <button className="px-4 py-2 bg-[#d9534f] text-white rounded shadow hover:bg-[#c9302c] transition">Delete Area</button>
-              </div>
-            </div>
-            <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6"></div>
-          </section>
-        )}
+        {activeTab === "inventory" && <InventoryPage />}
 
         {activeTab === "ordering" && (
           <section>
