@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -74,7 +73,7 @@ export default function InventoryPage() {
               autoFocus
             />
             <div className="flex justify-end gap-2">
-              <button type="button" className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition-colors" onClick={() => setShowCreateModal(false)}>Cancel</button>
+              <button type="button" className="px-4 py-2 bg-[#d1d5db] text-black rounded hover:bg-gray-400 transition-colors" onClick={() => setShowCreateModal(false)}>Cancel</button>
               <button type="submit" className="px-4 py-2 bg-[#8fa481] text-white rounded hover:bg-[#7a926e] transition-colors">Create</button>
             </div>
           </form>

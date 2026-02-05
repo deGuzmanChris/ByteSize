@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import InventoryPage from "./InventoryPage";
+import InventoryPage from "../app/inventory/page";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("inventory");
