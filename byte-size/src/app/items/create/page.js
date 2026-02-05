@@ -1,3 +1,5 @@
+// connect all the create items to firebase
+
 "use client";
 
 import { useState } from "react";
@@ -24,6 +26,7 @@ export default function CreateItemPage() {
     "Frozen",
     "Sauces",
   ];
+//for cristian
 
   const handleChange = (e) => {
     const { name, value } = e.target;
