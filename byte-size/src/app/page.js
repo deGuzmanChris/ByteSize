@@ -1,10 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import InventoryPage from "./InventoryPage";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("inventory");
+
+  // Set initial tab from URL query (?tab=)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab && ["inventory", "ordering", "prep", "settings"].includes(tab)) {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
 
   const tabs = [
     { id: "inventory", label: "Inventory" },

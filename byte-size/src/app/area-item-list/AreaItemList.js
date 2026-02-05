@@ -44,8 +44,11 @@ export default function AreaItemListPage() {
           <button
             key={tab.id}
             onClick={() => {
-              if(tab.id === "inventory") router.push("/");
-              setActiveTab(tab.id);
+              if (tab.id === "inventory") {
+                window.location.href = "/";
+              } else {
+                window.location.href = `/?tab=${tab.id}`;
+              }
             }}
             className={`text-left px-5 py-4 transition-colors 
               ${tab.id === "inventory" ? "bg-[#9CAB84]" : "hover:bg-[#9CAB84]/70"}`}
