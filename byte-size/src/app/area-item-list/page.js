@@ -26,6 +26,18 @@ export default function AreaItemListPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
+  const [areaCountInputs, setAreaCountInputs] = useState({});
+
+  const handleQuantityChange = (idx, value) => {
+    setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: value } : item));
+  };
+  const handleAreaCountInputChange = (idx, value) => {
+    setAreaCountInputs(inputs => ({ ...inputs, [idx]: value }));
+  };
+  const handleAreaCountEnter = (idx) => {
+    setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: areaCountInputs[idx] } : item));
+    setAreaCountInputs(inputs => ({ ...inputs, [idx]: "" }));
+  };
 
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase())
@@ -88,7 +100,30 @@ export default function AreaItemListPage() {
           <ul className="space-y-4">
             {filteredItems.map((item, idx) => (
               <li key={idx} className="bg-[#F6F0D7] rounded-xl shadow-md p-6 min-h-16 flex flex-col justify-center">
-                <div className="font-semibold text-base">{item.name}</div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-semibold text-base" style={{ minWidth: '120px' }}>{item.name}</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={areaCountInputs[idx] || ""}
+                      onChange={e => handleAreaCountInputChange(idx, e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") {
+                          handleAreaCountEnter(idx);
+                        }
+                      }}
+                      className="w-32 p-2 rounded border text-center"
+                      style={{ minWidth: '110px', height: '40px', marginRight: '8px' }}
+                      placeholder="Enter quantity"
+                    />
+                    <label className="text-xl text-black-500 mr-2" style={{ minWidth: '40px' }}>Total:</label>
+                    <span className="px-2 py-1 bg-gray-100 rounded text-gray-800 font-medium border border-gray-300" style={{ minWidth: '110px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {item.areaCount ? `${item.areaCount} ${item.inventoryUnit || ''}` : item.inventoryUnit || '-'}
+                    </span>
+                  </div>
+                </div>
                 <div className="text-gray-600 text-sm">{item.description}</div>
               </li>
             ))}
