@@ -6,6 +6,7 @@ import { collection, getDocs } from "firebase/firestore";
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("inventory");
   const [inventory, setInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const tabs = [
     { id: "inventory", label: "Inventory" },
@@ -15,18 +16,34 @@ export default function Dashboard() {
   ];
 
 
+
+
   useEffect(() => {
-    async function fetchInventory() {
+  async function fetchInventory() {
+    try {
+      setLoading(true);
+      console.log("Fetching inventory...");
       const querySnapshot = await getDocs(collection(db, "inventory"));
+      console.log("Query snapshot:", querySnapshot);
+      console.log("Number of docs:", querySnapshot.docs.length);
+      
       const items = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      console.log("Inventory items:", items);
       setInventory(items);
+    } catch (error) {
+      console.error("Error fetching inventory:", error);
+    } finally {
+      setLoading(false);
     }
-    
+  }
+  
+  if (activeTab === "inventory") {
     fetchInventory();
-  }, []);
+  }
+}, [activeTab]);
 
   return (
     <div className="flex h-screen bg-[#F6F0D7] font-sans">
@@ -62,7 +79,30 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Empty table body - no data */}
+                  {loading ? (
+                    <tr>
+                      <td colSpan="4" className="text-center py-4 text-gray-500">
+                        Loading inventory...
+                      </td>
+                    </tr>
+                  ) : inventory.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="text-center py-4 text-gray-500">
+                        No inventory items found
+                      </td>
+                    </tr>
+                  ) : (
+                    inventory.map((item) => (
+                      <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 text-gray-700">
+                        <td className="py-3 px-4">{item.item_name}</td>
+                        <td className="py-3 px-4 capitalize">{item.category?.replace(/_/g, ' ')}</td>
+                        <td className="py-3 px-4 capitalize">{item.area}</td>
+                        <td className="py-3 px-4">
+                          {item.unit_quantity} {item.unit_of_measure} ({item.container_quantity} {item.container_unit})
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
