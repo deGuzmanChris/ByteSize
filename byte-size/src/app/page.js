@@ -45,6 +45,13 @@ export default function Dashboard() {
   }
 }, [activeTab]);
 
+  
+    useEffect(() => {
+    if (!currentUser) {
+      router.push('/login');
+    }
+  }, [currentUser, router]);
+
   return (
     <div className="flex h-screen bg-[#F6F0D7] font-sans">
       {/* Sidebar */}
