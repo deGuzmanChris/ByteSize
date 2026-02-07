@@ -2,21 +2,20 @@
 
 import { useMemo, useState } from "react";
 
-// Sprint 1: mock inventory items (replace later with DB/API)
+// Sprint 1: mock inventory items (this will be replaced later with DB/API)
 const INVENTORY_ITEMS = [
   { id: 1, name: "Milk", unit: "L", unitCost: 4.99 },
   { id: 2, name: "Bread", unit: "loaf", unitCost: 3.49 },
   { id: 3, name: "Eggs", unit: "dozen", unitCost: 5.99 },
 ];
 
-// Sprint 1: mock past orders list (replace later with backend)
+// Sprint 1: mock past orders list (this will be replaced later with backend)
 const MOCK_PAST_ORDERS = [
   { id: "ORD-001", date: "2026-02-02", status: "Submitted", lines: 3, total: 42.15 },
   { id: "ORD-002", date: "2026-02-04", status: "Draft", lines: 1, total: 9.98 },
 ];
 
 export default function OrderPage() {
-  // Top-level page state
   const [status, setStatus] = useState("Draft"); // "Draft" | "Submitted"
 
   // Current order lines (what the user is building)
@@ -93,7 +92,6 @@ export default function OrderPage() {
 
   return (
     <div className="p-6">
-      {/* PAGE HEADER */}
       <div className="flex items-start justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold">Ordering</h1>
@@ -116,7 +114,6 @@ export default function OrderPage() {
         <section className="lg:col-span-1 rounded-lg border bg-white p-4">
           <h2 className="font-semibold mb-3">Order Form</h2>
 
-          {/* Status */}
           <div className="mb-4">
             <div className="text-sm font-medium mb-2">Status</div>
             <div className="flex gap-2">
@@ -238,7 +235,7 @@ export default function OrderPage() {
             </div>
           </div>
 
-          {/* Order Summary + Actions */}
+          {/* Order Summary + Actions from Order Form*/}
           <div className="rounded-lg border bg-white p-4">
             <h2 className="font-semibold mb-3">Order Summary</h2>
 
