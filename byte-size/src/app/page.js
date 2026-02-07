@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import InventoryPage from "./InventoryPage";
+import OrderPage from "./order/page";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("inventory");
@@ -48,14 +49,7 @@ export default function Home() {
       <main className="flex-1 p-8 overflow-y-auto">
         {activeTab === "inventory" && <InventoryPage />}
 
-        {activeTab === "ordering" && (
-          <section>
-            <h1 className="text-2xl font-bold mb-6 text-black">Ordering</h1>
-            <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6">
-              
-            </div>
-          </section>
-        )}
+        {activeTab === "ordering" && <OrderPage />}
 
         {activeTab === "prep" && (
           <section>
