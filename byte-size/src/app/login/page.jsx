@@ -1,38 +1,50 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { auth, provider } from "../lib/firebase";
 import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "../lib/firebase";
+import useAuth from "../lib/useAuth";
+import { useEffect } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { user, loading } = useAuth();
+
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (!loading && user) router.push("/dashboard");
+  }, [user, loading, router]);
 
   const handleGoogleSignIn = async () => {
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      console.log("Firebase Google User:", user);
-      localStorage.setItem("user", JSON.stringify(user));
-      router.push("/");
+      await signInWithPopup(auth, googleProvider);
     } catch (error) {
-      console.error("Google Sign-In Error:", error);
-      alert("Google Sign-In failed. Please try again.");
+      console.error(error);
+      alert("Google Sign-In failed");
     }
   };
+
+  if (loading || user) return <div>Loading...</div>;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-sm text-center">
         <h1 className="text-2xl font-bold mb-2">Welcome</h1>
-        <p className="text-gray-500 mb-6">
-          Sign in with Google to continue
-        </p>
-        <div className="flex justify-center">
+        <p className="text-gray-500 mb-6">Sign in with Google or Email</p>
+
+        <div className="space-y-3">
           <button
             onClick={handleGoogleSignIn}
-            className="bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded shadow hover:bg-gray-50 flex items-center justify-center w-full"
+            className="w-full bg-white border border-gray-300 text-gray-700 font-semibold py-2 rounded hover:bg-gray-50"
           >
-            Sign in with Google
+            Continue with Google
+          </button>
+
+          <button
+            onClick={() => router.push("/login/email")}
+            className="w-full bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700"
+          >
+            Continue with Email
           </button>
         </div>
       </div>
