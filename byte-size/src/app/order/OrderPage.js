@@ -1,288 +1,216 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { loadItems } from "../lib/storage";
 
-// Sprint 1 mock inventory items (replace later with DB/API)
-const INVENTORY_ITEMS = [
-  { id: 1, name: "Milk", unit: "L", unitCost: 4.99 },
-  { id: 2, name: "Bread", unit: "loaf", unitCost: 3.49 },
-  { id: 3, name: "Eggs", unit: "dozen", unitCost: 5.99 },
-];
-
-// Sprint 1 mock past orders (replace later with backend)
-const MOCK_PAST_ORDERS = [
-  { id: "ORD-001", date: "2026-02-02", status: "Submitted", lines: 3, total: 42.15 },
-  { id: "ORD-002", date: "2026-02-04", status: "Draft", lines: 1, total: 9.98 },
+const FALLBACK_ITEMS = [
+  { id: "temp-1", name: "Milk", purchasePar: 10, actualCount: 4 },
+  { id: "temp-2", name: "Bread", purchasePar: 8, actualCount: 8 },
+  { id: "temp-3", name: "Eggs", purchasePar: 12, actualCount: 2 },
 ];
 
 export default function OrderPage() {
-  // Draft / Submitted status (Sprint 1)
-  const [status, setStatus] = useState("Draft"); // "Draft" | "Submitted"
+  const [items, setItems] = useState([]);
+  const [rows, setRows] = useState([]);
 
-  // Current order lines
-  const [rows, setRows] = useState([{ id: "r1", itemId: 1, qty: 0 }]);
+  useEffect(() => {
+    const stored = loadItems();
+    setItems(stored && stored.length > 0 ? stored : FALLBACK_ITEMS);
+  }, []);
 
-  const locked = status === "Submitted";
+  useEffect(() => {
+    const initial = items.map((it) => {
+      const pp = parseNonNegativeInt(it.purchasePar);
+      const ac = parseNonNegativeInt(it.actualCount);
+      const need = computeNeed(pp, ac);
 
-  const orderRows = useMemo(() => {
-    return rows.map((r) => {
-      const item = INVENTORY_ITEMS.find((i) => i.id === r.itemId) ?? INVENTORY_ITEMS[0];
-      const qty = Number(r.qty) || 0;
-      const rowTotal = qty * item.unitCost;
-      return { ...r, item, qty, rowTotal };
+      return {
+        id: String(it.id),
+        name: String(it.name ?? ""),
+        pp,
+        ac,
+        need,
+      };
     });
-  }, [rows]);
 
-  const totalCost = useMemo(
-    () => orderRows.reduce((sum, r) => sum + r.rowTotal, 0),
-    [orderRows]
+    setRows(initial);
+  }, [items]);
+
+  const totalNeed = useMemo(
+    () => rows.reduce((sum, r) => sum + parseNonNegativeInt(r.need), 0),
+    [rows]
   );
 
-  function money(n) {
-    return `$${n.toFixed(2)}`;
+  function updatePP(id, raw) {
+    const nextPP = parseNonNegativeInt(raw);
+
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const ac = parseNonNegativeInt(r.ac);
+        const need = computeNeed(nextPP, ac);
+        return { ...r, pp: nextPP, need };
+      })
+    );
   }
 
-  function updateRow(rowId, patch) {
-    setRows((prev) => prev.map((r) => (r.id === rowId ? { ...r, ...patch } : r)));
-  }
+  function updateAC(id, raw) {
+    const nextAC = parseNonNegativeInt(raw);
 
-  function addRow() {
-    setRows((prev) => [
-      ...prev,
-      { id: `r${Date.now()}`, itemId: INVENTORY_ITEMS[0].id, qty: 0 },
-    ]);
-  }
-
-  function removeRow(rowId) {
-    setRows((prev) => prev.filter((r) => r.id !== rowId));
-  }
-
-  // Actions (Sprint 1 placeholders)
-  function saveDraft() {
-    setStatus("Draft");
-    alert("Saved draft (Sprint 1 placeholder)");
-  }
-
-  function submitOrder() {
-    setStatus("Submitted");
-    alert("Submitted order (Sprint 1 placeholder)");
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const pp = parseNonNegativeInt(r.pp);
+        const need = computeNeed(pp, nextAC);
+        return { ...r, ac: nextAC, need };
+      })
+    );
   }
 
   function exportCsv() {
-    const headers = ["Item name", "Quantity to order", "Unit", "Unit cost", "Row total"];
+    const headers = ["Status", "Name", "PP", "A/C", "Need to order"];
     const lines = [
       headers.join(","),
-      ...orderRows.map((r) =>
-        [
-          csv(r.item.name),
-          r.qty,
-          csv(r.item.unit),
-          r.item.unitCost.toFixed(2),
-          r.rowTotal.toFixed(2),
-        ].join(",")
-      ),
-      ["", "", "", "Total", totalCost.toFixed(2)].join(","),
+      ...rows.map((r) => {
+        const status = statusFromDiff(r.pp, r.ac); 
+        return [csv(status), csv(r.name), r.pp, r.ac, r.need].join(",");
+      }),
+      ["", "TOTAL", "", "", totalNeed].join(","),
     ];
 
     const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = status === "Draft" ? "order-draft.csv" : "order-submitted.csv";
+    a.download = "order-form.csv";
     a.click();
     URL.revokeObjectURL(url);
   }
 
   return (
-    <div>
-      {/* Header row */}
-      <div className="flex items-start justify-between mb-4">
+    <section>
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-black">Ordering</h1>
           <p className="text-sm text-gray-600">
-            Create orders, save drafts, submit orders, and export CSV.
+            Need to order is computed as max(PP - A/C, 0). Status dot is based on PP - A/C only.
           </p>
         </div>
 
         <button
           onClick={exportCsv}
-          className="px-3 py-2 rounded border text-sm hover:opacity-90 bg-white"
+          className="px-4 py-2 bg-white border rounded shadow-sm hover:opacity-90 transition"
         >
-          Export as CSV
+          Export CSV
         </button>
       </div>
 
-      {/* Main layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left: Order Form panel */}
-        <section className="lg:col-span-1 rounded-lg border bg-white p-4">
-          <h2 className="font-semibold mb-3">Order Form</h2>
+      <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6">
+        <div className="overflow-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-black/20">
+                <th className="text-left py-2 pr-2 w-24">Status</th>
+                <th className="text-left py-2 pr-2">Name</th>
+                <th className="text-right py-2 pr-2 w-24">PP</th>
+                <th className="text-right py-2 pr-2 w-24">A/C</th>
+                <th className="text-right py-2 pr-2 w-32">Need to order</th>
+              </tr>
+            </thead>
 
-          {/* Status */}
-          <div className="mb-4">
-            <div className="text-sm font-medium mb-2">Status</div>
-            <div className="flex gap-2">
-              <StatusButton active={status === "Draft"} onClick={() => setStatus("Draft")}>
-                Draft
-              </StatusButton>
-              <StatusButton active={status === "Submitted"} onClick={() => setStatus("Submitted")}>
-                Submitted
-              </StatusButton>
-            </div>
-            {locked && <p className="text-xs text-gray-500 mt-2">Submitted orders are locked.</p>}
-          </div>
+            <tbody>
+              {rows.map((r) => {
+                const diff = Math.max(parseNonNegativeInt(r.pp) - parseNonNegativeInt(r.ac), 0);
+                const needsOrdering = diff > 0; 
 
-          {/* Current and past orders */}
-          <div>
-            <div className="text-sm font-medium mb-2">Current and past orders</div>
-            <div className="space-y-2">
-              {MOCK_PAST_ORDERS.map((o) => (
-                <div key={o.id} className="rounded border p-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="font-semibold">{o.id}</span>
-                    <span className="text-gray-600">{o.status}</span>
-                  </div>
-                  <div className="text-gray-600">
-                    {o.date} • {o.lines} lines • {money(o.total)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Right: Order Table + Summary */}
-        <section className="lg:col-span-2 space-y-4">
-          {/* Order Table */}
-          <div className="rounded-lg border bg-white p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">Order Table</h2>
-
-              <button
-                onClick={addRow}
-                className="px-3 py-2 rounded bg-[#6f7f4a] text-white text-sm disabled:opacity-50"
-                disabled={locked}
-              >
-                + Add line
-              </button>
-            </div>
-
-            <div className="overflow-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="py-2 pr-2">Item name</th>
-                    <th className="py-2 pr-2 w-28">Quantity to order</th>
-                    <th className="py-2 pr-2 w-24">Unit</th>
-                    <th className="py-2 pr-2 w-28 text-right">Unit cost</th>
-                    <th className="py-2 pr-2 w-28 text-right">Total</th>
-                    <th className="py-2 w-20"></th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {orderRows.map((r) => (
-                    <tr key={r.id} className="border-b">
-                      <td className="py-2 pr-2">
-                        <select
-                          value={r.itemId}
-                          onChange={(e) => updateRow(r.id, { itemId: Number(e.target.value) })}
-                          className="w-full rounded border px-2 py-1"
-                          disabled={locked}
-                        >
-                          {INVENTORY_ITEMS.map((i) => (
-                            <option key={i.id} value={i.id}>
-                              {i.name}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-
-                      <td className="py-2 pr-2">
-                        <input
-                          type="number"
-                          min="0"
-                          value={r.qty}
-                          onChange={(e) => updateRow(r.id, { qty: Number(e.target.value) })}
-                          className="w-full rounded border px-2 py-1"
-                          disabled={locked}
+                return (
+                  <tr key={r.id} className="border-b border-black/10">
+                    <td className="py-2 pr-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={[
+                            "inline-block w-3 h-3 rounded-full",
+                            needsOrdering ? "bg-yellow-400" : "bg-green-500",
+                          ].join(" ")}
+                          title={needsOrdering ? "Needs ordering" : "OK"}
                         />
-                      </td>
+                        <span className="text-xs text-gray-600">
+                          {needsOrdering ? "Need" : "OK"}
+                        </span>
+                      </div>
+                    </td>
 
-                      <td className="py-2 pr-2 text-gray-700">{r.item.unit}</td>
-                      <td className="py-2 pr-2 text-right">{money(r.item.unitCost)}</td>
-                      <td className="py-2 pr-2 text-right font-medium">{money(r.rowTotal)}</td>
+                    <td className="py-2 pr-2 font-medium">{r.name}</td>
 
-                      <td className="py-2 text-right">
-                        <button
-                          onClick={() => removeRow(r.id)}
-                          className="text-xs px-2 py-1 rounded border hover:bg-gray-50 disabled:opacity-50"
-                          disabled={locked}
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                    <td className="py-2 pr-2 text-right">
+                      <input
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={String(r.pp)}
+                        onChange={(e) => updatePP(r.id, e.target.value)}
+                        className="w-20 text-right rounded border px-2 py-1 bg-white"
+                      />
+                    </td>
 
-                  {orderRows.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-gray-500">
-                        No order items yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    <td className="py-2 pr-2 text-right">
+                      <input
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={String(r.ac)}
+                        onChange={(e) => updateAC(r.id, e.target.value)}
+                        className="w-20 text-right rounded border px-2 py-1 bg-white"
+                      />
+                    </td>
+
+                    <td className="py-2 pr-2 text-right">
+                      <input
+                        value={String(r.need)}
+                        readOnly
+                        className="w-24 text-right rounded border px-2 py-1 bg-gray-100 text-gray-700"
+                        title="Computed as max(PP - A/C, 0)"
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-gray-500">
+                    No items yet. Create items in Inventory first.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex justify-end mt-4 text-sm">
+          <div className="bg-white rounded border px-4 py-2">
+            <span className="text-gray-700 mr-2">Total need to order:</span>
+            <span className="font-bold">{totalNeed}</span>
           </div>
-
-          {/* Order Summary */}
-          <div className="rounded-lg border bg-white p-4">
-            <h2 className="font-semibold mb-3">Order Summary</h2>
-
-            <div className="flex items-center justify-between border-b pb-3 mb-3">
-              <span className="text-gray-700">Total cost</span>
-              <span className="font-bold">{money(totalCost)}</span>
-            </div>
-
-            <h3 className="font-semibold mb-2">Actions</h3>
-            <div className="flex gap-2">
-              <button
-                onClick={saveDraft}
-                className="px-4 py-2 rounded border disabled:opacity-50 bg-white"
-                disabled={locked}
-              >
-                Save draft
-              </button>
-
-              <button
-                onClick={submitOrder}
-                className="px-4 py-2 rounded bg-[#6f7f4a] text-white disabled:opacity-50"
-                disabled={locked}
-              >
-                Submit order
-              </button>
-            </div>
-          </div>
-        </section>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
-function StatusButton({ active, children, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={[
-        "px-3 py-2 rounded text-sm border",
-        active ? "bg-[#6f7f4a] text-white border-[#6f7f4a]" : "bg-white hover:bg-gray-50",
-      ].join(" ")}
-    >
-      {children}
-    </button>
-  );
+
+function computeNeed(pp, ac) {
+  return Math.max(parseNonNegativeInt(pp) - parseNonNegativeInt(ac), 0);
+}
+
+function statusFromDiff(pp, ac) {
+  const diff = Math.max(parseNonNegativeInt(pp) - parseNonNegativeInt(ac), 0);
+  return diff === 0 ? "OK" : "Need";
+}
+
+function parseNonNegativeInt(raw) {
+  const s = String(raw ?? "").replace(/[^\d]/g, "");
+  if (s === "") return 0;
+  const normalized = s.replace(/^0+(?=\d)/, "");
+  return Number(normalized);
 }
 
 function csv(value) {
