@@ -1,22 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getInventoryItems, createInventoryItem, deleteInventoryItem } from "../../lib/inventory";
 import { FaTrash } from "react-icons/fa";
+import { getAreas, createArea, deleteArea } from "../../lib/areas";
 
 export default function InventoryPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [areaToDelete, setAreaToDelete] = useState(null);
   const [areas, setAreas] = useState([]);
+  const [areaDocs, setAreaDocs] = useState([]); // Store area documents
+  const [loading, setLoading] = useState(true);
   const [newAreaName, setNewAreaName] = useState("");
 
+  // Fetch areas from Firestore (areas collection)
+  useEffect(() => {
+    async function fetchAreas() {
+      setLoading(true);
+      const areaList = await getAreas();
+      setAreaDocs(areaList);
+      setAreas(areaList.map(area => area.name));
+      setLoading(false);
+    }
+    fetchAreas();
+  }, []);
+
   // Handle create area form submit
-  const handleCreateArea = (e) => {
+  const handleCreateArea = async (e) => {
     e.preventDefault();
     if (newAreaName.trim() === "") return;
-    setAreas([...areas, newAreaName.trim()]);
+    await createArea(newAreaName.trim());
     setNewAreaName("");
     setShowCreateModal(false);
+    // Refresh areas
+    const areaList = await getAreas();
+    setAreaDocs(areaList);
+    setAreas(areaList.map(area => area.name));
+  };
+
+  // Handle delete area
+  const handleDeleteArea = async (areaName) => {
+    setShowDeleteModal(false);
+    setAreaToDelete(null);
+    // Find area doc by name
+    const areaDoc = areaDocs.find(area => area.name === areaName);
+    if (areaDoc) {
+      await deleteArea(areaDoc.id);
+    }
+    // Delete all inventory items with this area name
+    const items = await getInventoryItems();
+    const itemsToDelete = items.filter(item => item.area === areaName);
+    for (const item of itemsToDelete) {
+      await deleteInventoryItem(item.id);
+    }
+    // Refresh areas
+    const areaList = await getAreas();
+    setAreaDocs(areaList);
+    setAreas(areaList.map(area => area.name));
   };
 
   return (
@@ -30,7 +71,9 @@ export default function InventoryPage() {
           Create Area
         </button>
       </div>
-      {areas.length === 0 ? (
+      {loading ? (
+        <div className="mb-4">Loading areas...</div>
+      ) : areas.length === 0 ? (
         <div className="mb-4">
           <div className="bg-[#F6F0D7] rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 text-base text-gray-400">
             No areas yet.
@@ -91,7 +134,7 @@ export default function InventoryPage() {
               className="px-4 py-2 bg-[#d9534f] text-white rounded hover:bg-[#c9302c] transition-colors"
               onClick={() => {
                 if (areaToDelete !== null) {
-                  setAreas(areas.filter((_, idx) => idx !== areaToDelete));
+                  handleDeleteArea(areas[areaToDelete]);
                 }
                 setShowDeleteModal(false);
                 setAreaToDelete(null);

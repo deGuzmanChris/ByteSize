@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getInventoryItems, createInventoryItem, updateInventoryItem, deleteInventoryItem, getInventoryItem } from "../../lib/inventory";
 import { useSearchParams } from "next/navigation";
+import { FaArrowLeft } from "react-icons/fa";
 
 const tabs = [
   { id: "inventory", label: "Inventory" },
@@ -22,7 +24,7 @@ const categories = [
 function DeleteConfirmModal({ item, onCancel, onConfirm }) {
   return (
     <Modal onClose={onCancel} title="Delete Item?">
-      <div className="mb-4 text-red-700 font-semibold">Are you sure you want to delete this item?</div>
+      <div className="mb-4 ">Are you sure you want to delete this item?</div>
       <div className="flex justify-end gap-4">
         <button
           className="px-6 py-2 rounded-lg bg-[#d1d5db] text-black hover:bg-gray-400"
@@ -47,11 +49,13 @@ export default function AreaItemListPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [areaCountInputs, setAreaCountInputs] = useState({});
   const [viewItem, setViewItem] = useState(null); // For viewing item info
   const [editItemIdx, setEditItemIdx] = useState(null); // For editing item
   const [deleteItemIdx, setDeleteItemIdx] = useState(null); // For confirming delete
+  const [newAreaName, setNewAreaName] = useState(""); // For creating new areas
 
   const handleQuantityChange = (idx, value) => {
     setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: value } : item));
@@ -59,27 +63,76 @@ export default function AreaItemListPage() {
   const handleAreaCountInputChange = (idx, value) => {
     setAreaCountInputs(inputs => ({ ...inputs, [idx]: value }));
   };
-  const handleAreaCountEnter = (idx) => {
-    setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: areaCountInputs[idx] } : item));
+  const handleAreaCountEnter = async (idx) => {
+    const item = items[idx];
+    const newCount = areaCountInputs[idx];
+    // Update local state
+    setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: newCount } : item));
     setAreaCountInputs(inputs => ({ ...inputs, [idx]: "" }));
+    // Update in database
+    if (item.id) {
+      await updateInventoryItem(item.id, { ...item, areaCount: newCount });
+    }
   };
 
   const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(search.toLowerCase())
+    (item.name || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleCreateItem = (item) => {
-    setItems([...items, item]);
+  const handleCreateItem = async (item) => {
+    // Add area field
+    const itemWithArea = { ...item, area: areaName, time_created: new Date().toISOString() };
+    await createInventoryItem(itemWithArea);
+    // Refresh items
+    fetchItems();
   };
 
-  const handleEditItem = (idx, updatedItem) => {
-    setItems(items => items.map((item, i) => i === idx ? { ...item, ...updatedItem } : item));
+  const handleEditItem = async (idx, updatedItem) => {
+    const itemId = items[idx].id;
+    const original = items[idx];
+    // Remove 'name' from merged object before updating Firestore
+    const merged = { ...original, ...updatedItem };
+    if ("name" in merged) {
+      delete merged.name;
+    }
+    await updateInventoryItem(itemId, merged);
     setEditItemIdx(null);
+    fetchItems();
   };
 
-  const handleDeleteItem = (idx) => {
-    setItems(items => items.filter((_, i) => i !== idx));
+  const handleDeleteItem = async (idx) => {
+    const itemId = items[idx].id;
+    await deleteInventoryItem(itemId);
     setDeleteItemIdx(null);
+    fetchItems();
+  };
+  // Fetch items for this area
+  async function fetchItems() {
+    setLoading(true);
+    const allItems = await getInventoryItems();
+    // Map item_name to name for UI compatibility, but do not add 'name' if editing
+    const mappedItems = allItems
+      .filter(item => item.area === areaName)
+      .map(item => ({ ...item, name: item.item_name || "" })); // Show item_name in list
+    setItems(mappedItems);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    fetchItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [areaName]);
+
+  const handleCreateArea = async (e) => {
+    e.preventDefault();
+    if (newAreaName.trim() === "") return;
+    // Do NOT create a dummy item, just refresh areas
+    setNewAreaName("");
+    setShowCreateModal(false);
+    // Refresh areas
+    const items = await getInventoryItems();
+    const areaSet = new Set(items.map(item => item.area).filter(Boolean));
+    setAreas(Array.from(areaSet).concat(newAreaName.trim()));
   };
 
   return (
@@ -110,7 +163,22 @@ export default function AreaItemListPage() {
       {/* Main content */}
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-black">{areaName}</h1>
+          <div className="flex items-center">
+            {/* Breadcrumb header: Inventory <- Area */}
+            <span
+              className="text-2xl font-bold text-black cursor-pointer hover:text-[#7a926e]"
+              onClick={() => window.location.href = "/"}
+              style={{ marginRight: '8px' }}
+            >
+              Inventory
+            </span>
+            <span className="text-2xl font-bold text-black" style={{ marginLeft: '4px' }}>
+              &larr;
+            </span>
+            <span className="text-2xl font-bold text-black" style={{ marginLeft: '8px' }}>
+              {areaName}
+            </span>
+          </div>
           <button
             className="px-4 py-2 bg-[#89986D] text-white rounded shadow hover:bg-[#7a926e] transition"
             onClick={() => setShowCreateModal(true)}
@@ -127,7 +195,11 @@ export default function AreaItemListPage() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        {filteredItems.length === 0 ? (
+        {loading ? (
+          <div className="mb-8 bg-[#F6F0D7] rounded-xl shadow-md p-6 min-h-16 flex items-center">
+            <span className="text-gray-400 text-base">Loading items...</span>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <div className="mb-8 bg-[#F6F0D7] rounded-xl shadow-md p-6 min-h-16 flex items-center">
             <span className="text-gray-400 text-base">No items yet.</span>
           </div>
@@ -210,7 +282,7 @@ export default function AreaItemListPage() {
 
         {/* View Item Info Modal */}
         {viewItem && (
-          <ViewItemModal item={viewItem} onClose={() => setViewItem(null)} />
+          <ViewItemModal itemId={viewItem.id} onClose={() => setViewItem(null)} />
         )}
       </main>
     </div>
@@ -218,7 +290,16 @@ export default function AreaItemListPage() {
 }
 
 function EditItemModal({ item, onClose, onSave, categories }) {
-  const [form, setForm] = useState({ ...item });
+  const [form, setForm] = useState({
+    itemId: item.itemId || item.id || "",
+    item_name: item.item_name || "",
+    vendorNumber: item.vendorNumber || "",
+    category: item.category || "",
+    inventoryUnit: item.inventoryUnit || "",
+    purchaseUnit: item.purchaseUnit || "",
+    purchasePar: item.purchasePar || "",
+    time_created: item.time_created || "",
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -231,14 +312,14 @@ function EditItemModal({ item, onClose, onSave, categories }) {
   };
 
   return (
-    <Modal onClose={onClose} title={`Edit Item: ${item.name || ''}`}>
+    <Modal onClose={onClose} title={`Edit Item: ${form.item_name || ''}`}>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block font-medium mb-1">Item Name</label>
             <input
-              name="name"
-              value={form.name}
+              name="item_name"
+              value={form.item_name}
               onChange={handleChange}
               required
               className="w-full p-3 rounded-lg border"
@@ -337,17 +418,31 @@ function EditItemModal({ item, onClose, onSave, categories }) {
   );
 }
 
-function ViewItemModal({ item, onClose }) {
+function ViewItemModal({ itemId, onClose }) {
+  const [item, setItem] = useState(null);
+  useEffect(() => {
+    async function fetchItem() {
+      const fetched = await getInventoryItem(itemId);
+      setItem(fetched);
+    }
+    fetchItem();
+  }, [itemId]);
+  if (!item) {
+    return (
+      <Modal onClose={onClose} title="Loading...">
+        <div>Loading item information...</div>
+      </Modal>
+    );
+  }
   return (
-    <Modal onClose={onClose} title={item.name || "Item Info"}>
+    <Modal onClose={onClose} title={item.name || item.item_name || "Item Info"}>
       <div className="space-y-2">
-        <div><span className="font-semibold">Item ID:</span> {item.itemId || '-'}</div>
-        <div><span className="font-semibold">Vendor Number:</span> {item.vendorNumber || '-'}</div>
-        <div><span className="font-semibold">Category:</span> {item.category || '-'}</div>
-        <div><span className="font-semibold">Inventory Unit:</span> {item.inventoryUnit || '-'}</div>
-        <div><span className="font-semibold">Purchase Unit:</span> {item.purchaseUnit || '-'}</div>
-        <div><span className="font-semibold">Purchase Par:</span> {item.purchasePar || '-'}</div>
-        <div><span className="font-semibold">Description:</span> {item.description || '-'}</div>
+        <div><span className="font-semibold">Item ID:</span> {item.itemId || item.id || '-'} </div>
+        <div><span className="font-semibold">Vendor Number:</span> {item.vendorNumber || '-'} </div>
+        <div><span className="font-semibold">Category:</span> {item.category || '-'} </div>
+        <div><span className="font-semibold">Inventory Unit:</span> {item.inventoryUnit || item.unit_of_measure || '-'} </div>
+        <div><span className="font-semibold">Purchase Unit:</span> {item.purchaseUnit || item.container_unit || '-'} </div>
+        <div><span className="font-semibold">Purchase Par:</span> {item.purchasePar || '-'} </div>
       </div>
       <div className="flex justify-end mt-6">
         <button
@@ -363,13 +458,14 @@ function ViewItemModal({ item, onClose }) {
 
 function CreateItemModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
-    name: "",
+    item_name: "",
     itemId: "",
     vendorNumber: "",
+    category: "",
     inventoryUnit: "",
     purchaseUnit: "",
     purchasePar: "",
-    category: "",
+    time_created: new Date().toISOString(),
   });
 
   const handleChange = (e) => {
@@ -390,8 +486,8 @@ function CreateItemModal({ onClose, onCreate }) {
           <div>
             <label className="block font-medium mb-1">Item Name</label>
             <input
-              name="name"
-              value={form.name}
+              name="item_name"
+              value={form.item_name}
               onChange={handleChange}
               required
               className="w-full p-3 rounded-lg border"
