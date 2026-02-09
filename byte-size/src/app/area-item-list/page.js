@@ -19,6 +19,28 @@ const categories = [
   "Sauces",
 ];
 
+function DeleteConfirmModal({ item, onCancel, onConfirm }) {
+  return (
+    <Modal onClose={onCancel} title="Delete Item?">
+      <div className="mb-4 text-red-700 font-semibold">Are you sure you want to delete this item?</div>
+      <div className="flex justify-end gap-4">
+        <button
+          className="px-6 py-2 rounded-lg bg-[#d1d5db] text-black hover:bg-gray-400"
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
+        <button
+          className="px-6 py-2 rounded-lg bg-[#e57373] text-white hover:bg-[#c62828]"
+          onClick={onConfirm}
+        >
+          Delete
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 export default function AreaItemListPage() {
   const searchParams = useSearchParams();
   const areaName = searchParams.get("areaName");
@@ -29,6 +51,7 @@ export default function AreaItemListPage() {
   const [areaCountInputs, setAreaCountInputs] = useState({});
   const [viewItem, setViewItem] = useState(null); // For viewing item info
   const [editItemIdx, setEditItemIdx] = useState(null); // For editing item
+  const [deleteItemIdx, setDeleteItemIdx] = useState(null); // For confirming delete
 
   const handleQuantityChange = (idx, value) => {
     setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: value } : item));
@@ -52,6 +75,11 @@ export default function AreaItemListPage() {
   const handleEditItem = (idx, updatedItem) => {
     setItems(items => items.map((item, i) => i === idx ? { ...item, ...updatedItem } : item));
     setEditItemIdx(null);
+  };
+
+  const handleDeleteItem = (idx) => {
+    setItems(items => items.filter((_, i) => i !== idx));
+    setDeleteItemIdx(null);
   };
 
   return (
@@ -141,7 +169,21 @@ export default function AreaItemListPage() {
                     >
                       Edit
                     </button>
+                    <button
+                      className="ml-2 px-3 py-1 bg-[#e57373] text-white rounded hover:bg-[#c62828] transition"
+                      onClick={() => setDeleteItemIdx(idx)}
+                    >
+                      Delete
+                    </button>
                   </div>
+                  {/* Delete Confirmation Modal */}
+                  {deleteItemIdx !== null && (
+                    <DeleteConfirmModal
+                      item={items[deleteItemIdx]}
+                      onCancel={() => setDeleteItemIdx(null)}
+                      onConfirm={() => handleDeleteItem(deleteItemIdx)}
+                    />
+                  )}
                 </div>
                 <div className="text-gray-600 text-sm">{item.description}</div>
               </li>
