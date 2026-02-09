@@ -27,6 +27,7 @@ export default function AreaItemListPage() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [areaCountInputs, setAreaCountInputs] = useState({});
+  const [viewItem, setViewItem] = useState(null); // For viewing item info
 
   const handleQuantityChange = (idx, value) => {
     setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: value } : item));
@@ -45,6 +46,7 @@ export default function AreaItemListPage() {
 
   const handleCreateItem = (item) => {
     setItems([...items, item]);
+    // Do not open View Info modal automatically
   };
 
   return (
@@ -122,6 +124,12 @@ export default function AreaItemListPage() {
                     <span className="px-2 py-1 bg-gray-100 rounded text-gray-800 font-medium border border-gray-300" style={{ minWidth: '110px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {item.areaCount ? `${item.areaCount} ${item.inventoryUnit || ''}` : item.inventoryUnit || '-'}
                     </span>
+                    <button
+                      className="ml-4 px-3 py-1 bg-[#8fa481] text-white rounded hover:bg-[#7a926e] transition"
+                      onClick={() => setViewItem(item)}
+                    >
+                      View Info
+                    </button>
                   </div>
                 </div>
                 <div className="text-gray-600 text-sm">{item.description}</div>
@@ -137,8 +145,37 @@ export default function AreaItemListPage() {
             onCreate={handleCreateItem}
           />
         )}
+
+        {/* View Item Info Modal */}
+        {viewItem && (
+          <ViewItemModal item={viewItem} onClose={() => setViewItem(null)} />
+        )}
       </main>
     </div>
+  );
+}
+
+function ViewItemModal({ item, onClose }) {
+  return (
+    <Modal onClose={onClose} title={item.name || "Item Info"}>
+      <div className="space-y-2">
+        <div><span className="font-semibold">Item ID:</span> {item.itemId || '-'}</div>
+        <div><span className="font-semibold">Vendor Number:</span> {item.vendorNumber || '-'}</div>
+        <div><span className="font-semibold">Category:</span> {item.category || '-'}</div>
+        <div><span className="font-semibold">Inventory Unit:</span> {item.inventoryUnit || '-'}</div>
+        <div><span className="font-semibold">Purchase Unit:</span> {item.purchaseUnit || '-'}</div>
+        <div><span className="font-semibold">Purchase Par:</span> {item.purchasePar || '-'}</div>
+        <div><span className="font-semibold">Description:</span> {item.description || '-'}</div>
+      </div>
+      <div className="flex justify-end mt-6">
+        <button
+          className="px-6 py-2 rounded-lg bg-[#8fa481] text-white hover:bg-[#7a926e]"
+          onClick={onClose}
+        >
+          Close
+        </button>
+      </div>
+    </Modal>
   );
 }
 

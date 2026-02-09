@@ -32,7 +32,7 @@ export default function InventoryPage() {
       </div>
       {areas.length === 0 ? (
         <div className="mb-4">
-          <div className="bg-[#F6F0D7] rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 font-semibold text-base text-gray-400">
+          <div className="bg-[#F6F0D7] rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 text-base text-gray-400">
             No areas yet.
           </div>
         </div>
