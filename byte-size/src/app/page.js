@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import InventoryPage from "./InventoryPage";
+import InventoryPage from "./inventory/page";
 import OrderPage from "./order/OrderPage";
 
 export default function Home() {
