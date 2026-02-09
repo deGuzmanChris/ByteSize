@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { getInventoryItems, createInventoryItem, updateInventoryItem, deleteInventoryItem, getInventoryItem } from "../../lib/inventory";
 import { useSearchParams } from "next/navigation";
-import { FaArrowLeft } from "react-icons/fa";
 
 const tabs = [
   { id: "inventory", label: "Inventory" },
@@ -55,7 +54,6 @@ export default function AreaItemListPage() {
   const [viewItem, setViewItem] = useState(null); // For viewing item info
   const [editItemIdx, setEditItemIdx] = useState(null); // For editing item
   const [deleteItemIdx, setDeleteItemIdx] = useState(null); // For confirming delete
-  const [newAreaName, setNewAreaName] = useState(""); // For creating new areas
 
   const handleQuantityChange = (idx, value) => {
     setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: value } : item));
@@ -122,18 +120,6 @@ export default function AreaItemListPage() {
     fetchItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaName]);
-
-  const handleCreateArea = async (e) => {
-    e.preventDefault();
-    if (newAreaName.trim() === "") return;
-    // Do NOT create a dummy item, just refresh areas
-    setNewAreaName("");
-    setShowCreateModal(false);
-    // Refresh areas
-    const items = await getInventoryItems();
-    const areaSet = new Set(items.map(item => item.area).filter(Boolean));
-    setAreas(Array.from(areaSet).concat(newAreaName.trim()));
-  };
 
   return (
     <div className="flex h-screen bg-[#F6F0D7] font-sans">

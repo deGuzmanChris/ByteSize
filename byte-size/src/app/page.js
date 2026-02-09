@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import InventoryPage from "../app/inventory/page";
 
 export default function Home() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("inventory");
 
   // Set initial tab from URL query (?tab=)
