@@ -2,20 +2,20 @@
 
 import { useMemo, useState } from "react";
 
-// Sprint 1: mock inventory items (this will be replaced later with DB/API)
+// Mock inventory items for Sprint 1(this will be replaced later with DB/API)
 const INVENTORY_ITEMS = [
   { id: 1, name: "Milk", unit: "L", unitCost: 4.99 },
   { id: 2, name: "Bread", unit: "loaf", unitCost: 3.49 },
   { id: 3, name: "Eggs", unit: "dozen", unitCost: 5.99 },
 ];
 
-// Sprint 1: mock past orders list (this will be replaced later with backend)
+// Mock past orders list for Sprint 1(this will be replaced later with backend)
 const MOCK_PAST_ORDERS = [
   { id: "ORD-001", date: "2026-02-02", status: "Submitted", lines: 3, total: 42.15 },
   { id: "ORD-002", date: "2026-02-04", status: "Draft", lines: 1, total: 9.98 },
 ];
 
-export default function OrderPage() {
+export default function OrderFormView() {
   const [status, setStatus] = useState("Draft"); // "Draft" | "Submitted"
 
   // Current order lines (what the user is building)

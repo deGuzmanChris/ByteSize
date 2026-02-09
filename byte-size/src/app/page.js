@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import InventoryPage from "./InventoryPage";
-import OrderPage from "./order/page";
+import OrderPage from "./order/OrderPage";
 
 export default function Home() {
   const router = useRouter();
