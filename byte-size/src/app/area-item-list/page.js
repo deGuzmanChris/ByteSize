@@ -28,6 +28,7 @@ export default function AreaItemListPage() {
   const [search, setSearch] = useState("");
   const [areaCountInputs, setAreaCountInputs] = useState({});
   const [viewItem, setViewItem] = useState(null); // For viewing item info
+  const [editItemIdx, setEditItemIdx] = useState(null); // For editing item
 
   const handleQuantityChange = (idx, value) => {
     setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: value } : item));
@@ -46,7 +47,11 @@ export default function AreaItemListPage() {
 
   const handleCreateItem = (item) => {
     setItems([...items, item]);
-    // Do not open View Info modal automatically
+  };
+
+  const handleEditItem = (idx, updatedItem) => {
+    setItems(items => items.map((item, i) => i === idx ? { ...item, ...updatedItem } : item));
+    setEditItemIdx(null);
   };
 
   return (
@@ -130,11 +135,26 @@ export default function AreaItemListPage() {
                     >
                       View Info
                     </button>
+                    <button
+                      className="ml-2 px-3 py-1 bg-[#d1b36a] text-white rounded hover:bg-[#bfa14e] transition"
+                      onClick={() => setEditItemIdx(idx)}
+                    >
+                      Edit
+                    </button>
                   </div>
                 </div>
                 <div className="text-gray-600 text-sm">{item.description}</div>
               </li>
             ))}
+                  {/* Edit Item Modal */}
+                  {editItemIdx !== null && (
+                    <EditItemModal
+                      item={items[editItemIdx]}
+                      onClose={() => setEditItemIdx(null)}
+                      onSave={updatedItem => handleEditItem(editItemIdx, updatedItem)}
+                      categories={categories}
+                    />
+                  )}
           </ul>
         )}
 
@@ -152,6 +172,126 @@ export default function AreaItemListPage() {
         )}
       </main>
     </div>
+  );
+}
+
+function EditItemModal({ item, onClose, onSave, categories }) {
+  const [form, setForm] = useState({ ...item });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(form);
+  };
+
+  return (
+    <Modal onClose={onClose} title={`Edit Item: ${item.name || ''}`}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block font-medium mb-1">Item Name</label>
+            <input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+              className="w-full p-3 rounded-lg border"
+            />
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Item ID</label>
+            <input
+              name="itemId"
+              value={form.itemId}
+              onChange={handleChange}
+              required
+              className="w-full p-3 rounded-lg border"
+            />
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Vendor Number</label>
+            <input
+              name="vendorNumber"
+              value={form.vendorNumber}
+              onChange={handleChange}
+              className="w-full p-3 rounded-lg border"
+            />
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Category</label>
+            <select
+              name="category"
+              value={form.category}
+              onChange={handleChange}
+              required
+              className="w-full p-3 rounded-lg border"
+            >
+              <option value="">Select category</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="border-t pt-6">
+          <h2 className="text-lg font-semibold mb-4">Inventory Details</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block font-medium mb-1">Inventory Unit</label>
+              <input
+                name="inventoryUnit"
+                placeholder="e.g. lbs, units"
+                value={form.inventoryUnit}
+                onChange={handleChange}
+                required
+                className="w-full p-3 rounded-lg border"
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Purchase Unit</label>
+              <input
+                name="purchaseUnit"
+                placeholder="e.g. case, box"
+                value={form.purchaseUnit}
+                onChange={handleChange}
+                required
+                className="w-full p-3 rounded-lg border"
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Purchase Par</label>
+              <input
+                name="purchasePar"
+                type="number"
+                value={form.purchasePar}
+                onChange={handleChange}
+                required
+                className="w-full p-3 rounded-lg border"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-4 pt-6">
+          <button
+            type="button"
+            className="px-6 py-2 rounded-lg bg-[#d1d5db] text-black hover:bg-gray-400"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-6 py-2 rounded-lg bg-[#8fa481] text-white hover:bg-[#7a926e]"
+          >
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
