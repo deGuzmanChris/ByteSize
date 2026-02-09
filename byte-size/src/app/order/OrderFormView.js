@@ -2,21 +2,21 @@
 
 import { useMemo, useState } from "react";
 
-// Mock inventory items for Sprint 1(this will be replaced later with DB/API)
+// Inventory items for Sprint 1(this will be replaced later with DB/API)
 const INVENTORY_ITEMS = [
   { id: 1, name: "Milk", unit: "L", unitCost: 4.99 },
   { id: 2, name: "Bread", unit: "loaf", unitCost: 3.49 },
   { id: 3, name: "Eggs", unit: "dozen", unitCost: 5.99 },
 ];
 
-// Mock past orders list for Sprint 1(this will be replaced later with backend)
+// Past orders list for Sprint 1(this will be replaced later with backend)
 const MOCK_PAST_ORDERS = [
   { id: "ORD-001", date: "2026-02-02", status: "Submitted", lines: 3, total: 42.15 },
   { id: "ORD-002", date: "2026-02-04", status: "Draft", lines: 1, total: 9.98 },
 ];
 
 export default function OrderFormView() {
-  const [status, setStatus] = useState("Draft"); // "Draft" | "Submitted"
+  const [status, setStatus] = useState("Draft"); // "Draft" | "Submitted" buttons
 
   // Current order lines (what the user is building)
   const [rows, setRows] = useState([
@@ -57,18 +57,15 @@ export default function OrderFormView() {
   function removeRow(rowId) {
     setRows((prev) => prev.filter((r) => r.id !== rowId));
   }
-
-  // Actions
+  // Post to backend later
   function saveDraft() {
     setStatus("Draft");
-    // Later: POST to backend
-    alert("Saved draft (Sprint 1 placeholder)");
+    alert("Saved draft");
   }
-
+  //Post to backend later + lock editing after
   function submitOrder() {
     setStatus("Submitted");
-    // Later: POST to backend + lock editing
-    alert("Submitted order (Sprint 1 placeholder)");
+    alert("Submitted order");
   }
 
   function exportCsv() {
@@ -107,10 +104,8 @@ export default function OrderFormView() {
           Export as CSV
         </button>
       </div>
-
-      {/* ORDER FORM (current + past orders) */}
+      {/*Post order from previous and current times*/}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Current + Past Orders */}
         <section className="lg:col-span-1 rounded-lg border bg-white p-4">
           <h2 className="font-semibold mb-3">Order Form</h2>
 
@@ -131,7 +126,7 @@ export default function OrderFormView() {
             )}
           </div>
 
-          {/* Current / Past orders list */}
+          {/* List of current + past orders */}
           <div>
             <div className="text-sm font-medium mb-2">Current and past orders</div>
             <div className="space-y-2">
@@ -150,7 +145,7 @@ export default function OrderFormView() {
           </div>
         </section>
 
-        {/* Order Creation View */}
+        {/* View of order creation */}
         <section className="lg:col-span-2 space-y-4">
           {/* Order Table */}
           <div className="rounded-lg border bg-white p-4">
