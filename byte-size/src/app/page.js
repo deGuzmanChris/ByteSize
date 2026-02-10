@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import InventoryPage from "./inventory/page";
-import OrderPage from "./order/OrderPage";
+import OrderPage from "./order/page";
 
 export default function Home() {
   const router = useRouter();
