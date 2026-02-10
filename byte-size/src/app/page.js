@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import InventoryPage from "../app/inventory/page";
+import OrderPage from "../app/order/OrderPage";
 
 export default function Home() {
   const router = useRouter();
@@ -63,6 +64,7 @@ export default function Home() {
 
       <main className="flex-1 p-8 overflow-y-auto">
         {activeTab === "inventory" && <InventoryPage />}
+        {activeTab === "ordering" && <OrderPage />}
 
         {activeTab === "ordering" && (
           <section>

@@ -78,12 +78,21 @@ export default function AreaItemListPage() {
   );
 
   const handleCreateItem = async (item) => {
-    // Add area field
-    const itemWithArea = { ...item, area: areaName, time_created: new Date().toISOString() };
-    await createInventoryItem(itemWithArea);
-    // Refresh items
-    fetchItems();
+  // Add area field 
+  const itemWithArea = {
+    ...item,
+    area: areaName,
+    time_created: new Date().toISOString(),
+
+    purchasePar: Number(item.purchasePar) || 0,
+    areaCount: 0,
   };
+
+  await createInventoryItem(itemWithArea);
+  // Refresh items
+  fetchItems();
+};
+
 
   const handleEditItem = async (idx, updatedItem) => {
     const itemId = items[idx].id;
