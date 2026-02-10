@@ -52,6 +52,56 @@ export default function OrderPage() {
     );
   }
 
+  function exportCsv() {
+    const toExport = rows.filter((r) => r.need > 0);
+
+    if (toExport.length === 0) {
+      alert("Nothing to export — all items have Need = 0.");
+      return;
+    }
+
+    const headers = ["Name", "PP", "A/C", "Need", "Unit"];
+
+    const escapeCell = (value) => {
+      const s = String(value ?? "");
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+
+    const lines = [
+      headers.join(","),
+      ...toExport.map((r) =>
+        [
+          escapeCell(r.name),
+          escapeCell(r.pp),
+          escapeCell(r.ac),
+          escapeCell(r.need),
+          escapeCell(r.unit),
+        ].join(",")
+      ),
+    ];
+
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    const filename = `ordering_${y}-${m}-${d}.csv`;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  
+
   const totalNeed = useMemo(() => rows.reduce((sum, r) => sum + r.need, 0), [rows]);
 
   return (
@@ -60,6 +110,14 @@ export default function OrderPage() {
         <div>
           <h1 className="text-2xl font-bold text-black">Ordering</h1>
         </div>
+
+        <button
+          onClick={exportCsv}
+          disabled={loading || rows.length === 0}
+          className="rounded-lg px-4 py-2 font-semibold bg-[#89986D] text-[#F6F0D7] hover:bg-[#7C8A5F] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Export CSV
+        </button>
       </div>
 
       <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6">
