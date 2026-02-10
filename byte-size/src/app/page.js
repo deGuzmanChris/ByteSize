@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import InventoryPage from "./inventory/page";
 import OrderPage from "./order/OrderPage";
 
