@@ -83,13 +83,32 @@ export default function Home() {
         )}
 
         {activeTab === "settings" && (
-          <section>
-            <h1 className="text-2xl font-bold mb-6 text-black">Settings</h1>
-            <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6">
+  <section>
+    <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
-            </div>
-          </section>
-        )}
+    <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6 space-y-6">
+
+      {/* Inventory Config */}
+      <div>
+        <h2 className="text-lg font-semibold mb-2">Inventory Setup</h2>
+        <p className="text-sm text-gray-700 mb-4">
+          Manage inventory items, categories, and unit standards.
+        </p>
+
+        <a
+          href="/items/create"
+          className="inline-flex items-center gap-2 bg-[#89986D] text-[#F6F0D7] px-5 py-3 rounded-lg hover:opacity-90 transition"
+        >
+           Create New Item
+        </a>
+      </div>
+
+    
+
+    </div>
+  </section>
+)}
+
       </main>
     </div>
   );
