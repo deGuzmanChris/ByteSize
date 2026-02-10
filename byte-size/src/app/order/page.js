@@ -132,8 +132,8 @@ export default function OrderPage() {
                 <tr className="border-b">
                   <th className="text-left py-2 w-24">Status</th>
                   <th className="text-left py-2">Name</th>
-                  <th className="text-right py-2 w-24">PP</th>
-                  <th className="text-right py-2 w-24">A/C</th>
+                  <th className="text-right py-2 w-24">Purchase Par</th>
+                  <th className="text-right py-2 w-24">Actual Count</th>
                   <th className="text-right py-2 w-32">Need</th>
                 </tr>
               </thead>
