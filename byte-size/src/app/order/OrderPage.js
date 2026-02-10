@@ -1,222 +1,195 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { loadItems } from "../lib/storage";
-
-const FALLBACK_ITEMS = [
-  { id: "temp-1", name: "Milk", purchasePar: 10, actualCount: 4 },
-  { id: "temp-2", name: "Bread", purchasePar: 8, actualCount: 8 },
-  { id: "temp-3", name: "Eggs", purchasePar: 12, actualCount: 2 },
-];
+import { getInventoryItems } from "../../lib/inventory"; 
 
 export default function OrderPage() {
-  const [items, setItems] = useState([]);
   const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = loadItems();
-    setItems(stored && stored.length > 0 ? stored : FALLBACK_ITEMS);
-  }, []);
+    async function load() {
+      setLoading(true);
+      const all = await getInventoryItems();
 
-  useEffect(() => {
-    const initial = items.map((it) => {
-      const pp = parseNonNegativeInt(it.purchasePar);
-      const ac = parseNonNegativeInt(it.actualCount);
-      const need = computeNeed(pp, ac);
+      const mapped = all.map((item) => {
+      const name = String(item.item_name ?? "");
+
+      const pp = cleanInt(item.container_quantity); // PP
+      const ac = cleanInt(item.unit_quantity);      // A/C
+
+      const need = Math.max(pp - ac, 0);
 
       return {
-        id: String(it.id),
-        name: String(it.name ?? ""),
+        id: item.id,
+        name,
         pp,
         ac,
         need,
+        unit: item.unit_of_measure || "",
       };
-    });
+});
 
-    setRows(initial);
-  }, [items]);
 
-  const totalNeed = useMemo(
-    () => rows.reduce((sum, r) => sum + parseNonNegativeInt(r.need), 0),
-    [rows]
-  );
+      setRows(mapped);
+      setLoading(false);
+    }
+
+    load();
+  }, []);
 
   function updatePP(id, raw) {
-    const nextPP = parseNonNegativeInt(raw);
-
+    const pp = cleanInt(raw);
     setRows((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r;
-        const ac = parseNonNegativeInt(r.ac);
-        const need = computeNeed(nextPP, ac);
-        return { ...r, pp: nextPP, need };
-      })
+      prev.map((r) => (r.id === id ? { ...r, pp, need: Math.max(pp - r.ac, 0) } : r))
     );
   }
 
   function updateAC(id, raw) {
-    const nextAC = parseNonNegativeInt(raw);
-
+    const ac = cleanInt(raw);
     setRows((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r;
-        const pp = parseNonNegativeInt(r.pp);
-        const need = computeNeed(pp, nextAC);
-        return { ...r, ac: nextAC, need };
-      })
+      prev.map((r) => (r.id === id ? { ...r, ac, need: Math.max(r.pp - ac, 0) } : r))
     );
   }
 
   function exportCsv() {
-    const headers = ["Status", "Name", "PP", "A/C", "Need to order"];
+    const toExport = rows.filter((r) => r.need > 0);
+
+    if (toExport.length === 0) {
+      alert("Nothing to export — all items have Need = 0.");
+      return;
+    }
+
+    const headers = ["Name", "PP", "A/C", "Need", "Unit"];
+
+    const escapeCell = (value) => {
+      const s = String(value ?? "");
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+
     const lines = [
       headers.join(","),
-      ...rows.map((r) => {
-        const status = statusFromDiff(r.pp, r.ac); 
-        return [csv(status), csv(r.name), r.pp, r.ac, r.need].join(",");
-      }),
-      ["", "TOTAL", "", "", totalNeed].join(","),
+      ...toExport.map((r) =>
+        [
+          escapeCell(r.name),
+          escapeCell(r.pp),
+          escapeCell(r.ac),
+          escapeCell(r.need),
+          escapeCell(r.unit),
+        ].join(",")
+      ),
     ];
 
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    const filename = `ordering_${y}-${m}-${d}.csv`;
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "order-form.csv";
+    a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     URL.revokeObjectURL(url);
   }
+
+  
+
+  const totalNeed = useMemo(() => rows.reduce((sum, r) => sum + r.need, 0), [rows]);
 
   return (
     <section>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-black">Ordering</h1>
-          <p className="text-sm text-gray-600">
-            Need to order is computed as max(PP - A/C, 0). Status dot is based on PP - A/C only.
-          </p>
         </div>
 
         <button
           onClick={exportCsv}
-          className="px-4 py-2 bg-white border rounded shadow-sm hover:opacity-90 transition"
+          disabled={loading || rows.length === 0}
+          className="rounded-lg px-4 py-2 font-semibold bg-[#89986D] text-[#F6F0D7] hover:bg-[#7C8A5F] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Export CSV
         </button>
       </div>
 
       <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6">
-        <div className="overflow-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-black/20">
-                <th className="text-left py-2 pr-2 w-24">Status</th>
-                <th className="text-left py-2 pr-2">Name</th>
-                <th className="text-right py-2 pr-2 w-24">PP</th>
-                <th className="text-right py-2 pr-2 w-24">A/C</th>
-                <th className="text-right py-2 pr-2 w-32">Need to order</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {rows.map((r) => {
-                const diff = Math.max(parseNonNegativeInt(r.pp) - parseNonNegativeInt(r.ac), 0);
-                const needsOrdering = diff > 0; 
-
-                return (
-                  <tr key={r.id} className="border-b border-black/10">
-                    <td className="py-2 pr-2">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={[
-                            "inline-block w-3 h-3 rounded-full",
-                            needsOrdering ? "bg-yellow-400" : "bg-green-500",
-                          ].join(" ")}
-                          title={needsOrdering ? "Needs ordering" : "OK"}
-                        />
-                        <span className="text-xs text-gray-600">
-                          {needsOrdering ? "Need" : "OK"}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="py-2 pr-2 font-medium">{r.name}</td>
-
-                    <td className="py-2 pr-2 text-right">
-                      <input
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={String(r.pp)}
-                        onChange={(e) => updatePP(r.id, e.target.value)}
-                        className="w-20 text-right rounded border px-2 py-1 bg-white"
-                      />
-                    </td>
-
-                    <td className="py-2 pr-2 text-right">
-                      <input
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={String(r.ac)}
-                        onChange={(e) => updateAC(r.id, e.target.value)}
-                        className="w-20 text-right rounded border px-2 py-1 bg-white"
-                      />
-                    </td>
-
-                    <td className="py-2 pr-2 text-right">
-                      <input
-                        value={String(r.need)}
-                        readOnly
-                        className="w-24 text-right rounded border px-2 py-1 bg-gray-100 text-gray-700"
-                        title="Computed as max(PP - A/C, 0)"
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-gray-500">
-                    No items yet. Create items in Inventory first.
-                  </td>
+        {loading ? (
+          <div className="text-gray-600">Loading items…</div>
+        ) : rows.length === 0 ? (
+          <div className="text-gray-500">No inventory items yet. Create items first.</div>
+        ) : (
+          <>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 w-24">Status</th>
+                  <th className="text-left py-2">Name</th>
+                  <th className="text-right py-2 w-24">PP</th>
+                  <th className="text-right py-2 w-24">A/C</th>
+                  <th className="text-right py-2 w-32">Need</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
 
-        <div className="flex justify-end mt-4 text-sm">
-          <div className="bg-white rounded border px-4 py-2">
-            <span className="text-gray-700 mr-2">Total need to order:</span>
-            <span className="font-bold">{totalNeed}</span>
-          </div>
-        </div>
+              <tbody>
+                {rows.map((r) => {
+                  const needsOrder = r.need > 0;
+                  return (
+                    <tr key={r.id} className="border-b">
+                      <td className="py-2">
+                        <span
+                          className={`inline-block w-3 h-3 rounded-full ${
+                            needsOrder ? "bg-yellow-400" : "bg-green-500"
+                          }`}
+                        />
+                      </td>
+
+                      <td className="py-2 font-medium">{r.name}</td>
+
+                      <td className="py-2 text-right">
+                        <input
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={String(r.pp)}
+                          onChange={(e) => updatePP(r.id, e.target.value)}
+                          className="w-20 text-right rounded border px-2 py-1 bg-white"
+                        />
+                      </td>
+
+                      <td className="py-2 text-right">
+                        <input
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={String(r.ac)}
+                          onChange={(e) => updateAC(r.id, e.target.value)}
+                          className="w-20 text-right rounded border px-2 py-1 bg-white"
+                        />
+                      </td>
+
+                      <td className="py-2 text-right font-semibold">{r.need}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <div className="mt-4 text-right font-semibold">Total Need: {totalNeed}</div>
+          </>
+        )}
       </div>
     </section>
   );
 }
 
-
-function computeNeed(pp, ac) {
-  return Math.max(parseNonNegativeInt(pp) - parseNonNegativeInt(ac), 0);
-}
-
-function statusFromDiff(pp, ac) {
-  const diff = Math.max(parseNonNegativeInt(pp) - parseNonNegativeInt(ac), 0);
-  return diff === 0 ? "OK" : "Need";
-}
-
-function parseNonNegativeInt(raw) {
+function cleanInt(raw) {
   const s = String(raw ?? "").replace(/[^\d]/g, "");
   if (s === "") return 0;
-  const normalized = s.replace(/^0+(?=\d)/, "");
-  return Number(normalized);
-}
-
-function csv(value) {
-  const s = String(value ?? "");
-  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-    return `"${s.replaceAll('"', '""')}"`;
-  }
-  return s;
+  return Number(s.replace(/^0+(?=\d)/, ""));
 }
