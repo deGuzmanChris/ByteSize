@@ -2,18 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import InventoryPage from "../app/inventory/page";
 
-export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("inventory");
+export default function Home() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState("inventory");
 
+  // Set initial tab from URL query (?tab=)
   useEffect(() => {
-    const user = localStorage.getItem("user");
-
-    if (!user) {
-      router.replace("/login");
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab && ["inventory", "ordering", "prep", "settings"].includes(tab)) {
+        setActiveTab(tab);
+      }
     }
-  }, [router]);
+  }, []);
 
   const tabs = [
     { id: "inventory", label: "Inventory" },
@@ -58,14 +62,7 @@ export default function Dashboard() {
 
 
       <main className="flex-1 p-8 overflow-y-auto">
-        {activeTab === "inventory" && (
-          <section>
-            <h1 className="text-2xl font-bold mb-6 text-black">Inventory</h1>
-            <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6">
-
-            </div>
-          </section>
-        )}
+        {activeTab === "inventory" && <InventoryPage />}
 
         {activeTab === "ordering" && (
           <section>
