@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import InventoryPage from "../app/inventory/page";
-import OrderPage from "../app/order/OrderPage";
+import OrderPage from "../app/order/page";
 
 export default function Home() {
   const router = useRouter();
@@ -65,15 +65,6 @@ export default function Home() {
       <main className="flex-1 p-8 overflow-y-auto">
         {activeTab === "inventory" && <InventoryPage />}
         {activeTab === "ordering" && <OrderPage />}
-
-        {activeTab === "ordering" && (
-          <section>
-            <h1 className="text-2xl font-bold mb-6 text-black">Ordering</h1>
-            <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6">
-
-            </div>
-          </section>
-        )}
 
         {activeTab === "prep" && (
           <section>

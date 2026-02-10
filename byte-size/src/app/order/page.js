@@ -59,9 +59,6 @@ export default function OrderPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-black">Ordering</h1>
-          <p className="text-sm text-gray-600">
-            Need to order = max(PP - A/C, 0). Green if 0, yellow if &gt; 0.
-          </p>
         </div>
       </div>
 
