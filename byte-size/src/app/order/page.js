@@ -17,8 +17,8 @@ export default function OrderPage() {
       // Displays names that are shown on tables
       const name = String(item.item_name ?? "");
       // PP & A/C become integers, only keep numbers and never non-digits
-      const pp = cleanInt(item.container_quantity); // Purchase Par (PP)
-      const ac = cleanInt(item.unit_quantity); // Actual Count (A/C)
+      const pp = cleanInt(item.purchasePar); // Purchase Par (PP)
+      const ac = cleanInt(item.areaCount); // Actual Count (A/C)
       // Need to order column never goes negative, stays 0 
       const need = Math.max(pp - ac, 0);
       // Returns rows from table with corresponding items and their counts

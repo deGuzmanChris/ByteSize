@@ -36,9 +36,23 @@ export default function Home() {
     <div className="flex h-screen bg-[#F6F0D7] font-sans">
       {/* Sidebar */}
       <aside className="w-60 bg-[#89986D] text-[#F6F0D7] flex flex-col">
-        <h2 className="text-center text-xl font-semibold py-5 border-b border-[#9CAB84]">
-          ByteSize
-        </h2>
+          <div className="relative w-full border-b border-[#9CAB84]" style={{height: '120px'}}>
+            <img 
+              src="/bytesizelogo.png"
+              alt="ByteSize Brownie Logo" 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+                margin: 0,
+                padding: 0,
+              }}
+            />
+          </div>
 
         {tabs.map((tab) => (
           <button
@@ -76,13 +90,32 @@ export default function Home() {
         )}
 
         {activeTab === "settings" && (
-          <section>
-            <h1 className="text-2xl font-bold mb-6 text-black">Settings</h1>
-            <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6">
+  <section>
+    <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
-            </div>
-          </section>
-        )}
+    <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6 space-y-6">
+
+      {/* Inventory Config */}
+      <div>
+        <h2 className="text-lg font-semibold mb-2">Inventory Setup</h2>
+        <p className="text-sm text-gray-700 mb-4">
+          Manage inventory items, categories, and unit standards.
+        </p>
+
+        <a
+          href="/items/create"
+          className="inline-flex items-center gap-2 bg-[#89986D] text-[#F6F0D7] px-5 py-3 rounded-lg hover:opacity-90 transition"
+        >
+           Create New Item
+        </a>
+      </div>
+
+    
+
+    </div>
+  </section>
+)}
+
       </main>
     </div>
   );
