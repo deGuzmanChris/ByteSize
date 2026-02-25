@@ -4,16 +4,9 @@ import { useRouter } from "next/navigation";
 import { auth, provider } from "../../lib/firebase";
 import { useAuth } from "../../lib/auth";
 import { signInWithPopup } from "firebase/auth";
-import { useEffect } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const {user, loading} = useAuth();
-
-      // Redirect logged-in users to dashboard
-  useEffect(() => {
-    if (!loading && user) router.push("/dashboard");
-  }, [user, loading, router]);
 
   const handleGoogleSignIn = async () => {
     try {
