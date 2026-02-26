@@ -1,10 +1,8 @@
 "use client";
-
-"use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, provider, db } from "../../lib/firebase";
-import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth"; // Keep this one
+import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
@@ -93,7 +91,6 @@ export default function LoginPage() {
           </div>
         </div>
         
-        {/* Google Sign In */}
         <p className="text-gray-500 mb-4 text-sm">Sign in with Google</p>
         <div className="flex justify-center">
           <button
