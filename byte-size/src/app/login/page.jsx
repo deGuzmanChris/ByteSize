@@ -17,7 +17,7 @@ export default function LoginPage() {
       const user = result.user;
       console.log("Firebase Google User:", user);
       localStorage.setItem("user", JSON.stringify(user));
-      router.push("/");
+      router.push("/dashboard");
     } catch (error) {
       console.error("Google Sign-In Error:", error);
       alert("Google Sign-In failed. Please try again.");
@@ -31,7 +31,7 @@ export default function LoginPage() {
       const user = result.user;
       console.log("Firebase Email User:", user);
       localStorage.setItem("user", JSON.stringify(user));
-      router.push("/");
+      router.push("/dashboard");
     } catch (error) {
       console.error("Email Sign-In Error:", error);
       if (error.code === 'auth/user-not-found') {
