@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getInventoryItems } from "../../lib/inventory";
+import { logOrder } from "../../lib/orderHistory";
 import { useDarkMode } from "../../lib/DarkModeContext";
 
 export default function OrderPage() {
@@ -67,7 +68,7 @@ export default function OrderPage() {
   }
 
   // Called when order form is submitted and saves list of items needed to order in a file
-  function exportCsv() {
+  async function exportCsv() {
     const toExport = rows.filter((r) => r.need > 0);
     // Export as CSV won't work when there's no need to order any items
     if (toExport.length === 0) {
@@ -114,6 +115,9 @@ export default function OrderPage() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+
+    // Log the order to Firestore for analytics
+    await logOrder(toExport);
   }
 
   // Adds up the Need to Order column across all items
