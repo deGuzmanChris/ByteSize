@@ -10,28 +10,27 @@ export default function OrderPage() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      // Fetch all items from inventory page Firestore database
-      const all = await getInventoryItems();
-      // Converts items into table rows with their corresponding fields 
-      const mapped = all.map((item) => {
-      // Displays names that are shown on tables
-      const name = String(item.item_name ?? "");
-      // PP & A/C become integers, only keep numbers and never non-digits
-      const pp = cleanInt(item.purchasePar); // Purchase Par (PP)
-      const ac = cleanInt(item.areaCount); // Actual Count (A/C)
-      // Need to order column never goes negative, stays 0 
-      const need = Math.max(pp - ac, 0);
-      // Returns rows from table with corresponding items and their counts
-      return {
-        id: item.id,
-        name,
-        pp,
-        ac,
-        need,
-        unit: item.unit_of_measure || "",
-      };
-});
 
+      const all = await getInventoryItems();
+
+      const mapped = all.map((item) => {
+        const name = String(item.item_name ?? "");
+
+        // Optional: clamp initial values too (safe)
+        const pp = clamp(cleanInt(item.purchasePar), 0, MAX_PP);
+        const ac = clamp(cleanInt(item.areaCount), 0, MAX_AC);
+
+        const need = Math.max(pp - ac, 0);
+
+        return {
+          id: item.id,
+          name,
+          pp,
+          ac,
+          need,
+          unit: item.unit_of_measure || "",
+        };
+      });
 
       setRows(mapped);
       setLoading(false);
@@ -39,31 +38,45 @@ export default function OrderPage() {
 
     load();
   }, []);
-  // Called when Purchase Par is edited
+
+  // Called when Purchase Par is edited 
   function updatePP(id, raw) {
-    const pp = cleanInt(raw);
+    const digitsOnly = String(raw ?? "").replace(/[^\d]/g, "");
+
+    if (digitsOnly.length > 3) return;
+
+    const pp = digitsOnly === "" ? 0 : Number(digitsOnly.replace(/^0+(?=\d)/, ""));
+
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, pp, need: Math.max(pp - r.ac, 0) } : r))
+      prev.map((r) =>
+        r.id === id ? { ...r, pp, need: Math.max(pp - r.ac, 0) } : r
+      )
     );
   }
-  // Called when Actual Count is edited
+
+  // Called when Actual Count is edited 
   function updateAC(id, raw) {
-    const ac = cleanInt(raw);
+    const digitsOnly = String(raw ?? "").replace(/[^\d]/g, "");
+
+    if (digitsOnly.length > 3) return;
+
+    const ac = digitsOnly === "" ? 0 : Number(digitsOnly.replace(/^0+(?=\d)/, ""));
+
     setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ac, need: Math.max(r.pp - ac, 0) } : r))
+      prev.map((r) =>
+        r.id === id ? { ...r, ac, need: Math.max(r.pp - ac, 0) } : r
+      )
     );
   }
-  // Called when order form is submitted and saves list of items needed to order in a file
+
   function exportCsv() {
     const toExport = rows.filter((r) => r.need > 0);
-    // Export as CSV won't work when there's no need to order any items
     if (toExport.length === 0) {
       alert("Nothing to order...");
       return;
     }
 
     const headers = ["Name", "PP", "A/C", "Need", "Unit"];
-    // CSV is always valid even with special characters by wrapping them in quotes
     const escapeCell = (value) => {
       const s = String(value ?? "");
       if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
@@ -82,17 +95,16 @@ export default function OrderPage() {
         ].join(",")
       ),
     ];
-    // Rows are converted into a single CSV string
+
     const csv = lines.join("\n");
-    // Creates download file blob in the browser
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    // Generates file name 
+
     const today = new Date();
     const y = today.getFullYear();
     const m = String(today.getMonth() + 1).padStart(2, "0");
     const d = String(today.getDate()).padStart(2, "0");
     const filename = `ordering_${y}-${m}-${d}.csv`;
-    // Makes temp link to the blob, clicking the anchor triggers download, and cleans up memory
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -103,8 +115,6 @@ export default function OrderPage() {
     URL.revokeObjectURL(url);
   }
 
-  
-  // Adds up the Need to Order column across all items
   const totalNeed = useMemo(() => rows.reduce((sum, r) => sum + r.need, 0), [rows]);
 
   return (
@@ -190,7 +200,7 @@ export default function OrderPage() {
     </section>
   );
 }
-// Converts inputs or raw datas into safe integers for clean calculations and prevents NaN errors
+
 function cleanInt(raw) {
   const s = String(raw ?? "").replace(/[^\d]/g, "");
   if (s === "") return 0;
