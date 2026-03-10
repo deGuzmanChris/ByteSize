@@ -21,8 +21,19 @@ export default function EmailLoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+
+      const idToken = await result.user.getIdToken();
+
+      await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      router.push("/dashboard");
     } catch (error) {
       alert(error.message);
     } finally {
@@ -30,7 +41,7 @@ export default function EmailLoginPage() {
     }
   };
 
-  if (loading || user) return <div>Loading...</div>;
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

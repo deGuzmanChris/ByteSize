@@ -1,16 +1,27 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { auth, provider } from "../../lib/firebase";
+import { auth, googleProvider } from "../../lib/firebase";
 import { useAuth } from "../../lib/auth";
 import { signInWithPopup } from "firebase/auth";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { user, loading } = useAuth();
 
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+
+      const idToken = await result.user.getIdToken();
+
+      await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      router.push("/dashboard");
     } catch (error) {
       console.error(error);
       alert("Google Sign-In failed");
