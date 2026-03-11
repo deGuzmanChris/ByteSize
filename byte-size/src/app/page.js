@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import InventoryPage from "./inventory/page";
 import OrderPage from "./order/page";
+import PrepListPage from "./preplist/page";
+import { useAuth } from "./providers";
 
 export default function Home() {
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("inventory");
 
@@ -79,15 +82,7 @@ export default function Home() {
       <main className="flex-1 p-8 overflow-y-auto">
         {activeTab === "inventory" && <InventoryPage />}
         {activeTab === "ordering" && <OrderPage />}
-
-        {activeTab === "prep" && (
-          <section>
-            <h1 className="text-2xl font-bold mb-6 text-black">Prep Lists</h1>
-            <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6">
-
-            </div>
-          </section>
-        )}
+        {activeTab === "prep" && <PrepListPage user={user} />}
 
         {activeTab === "settings" && (
   <section>

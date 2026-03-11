@@ -135,9 +135,9 @@ export default function OrderPage() {
 
       <div className="bg-[#F6F0D7] rounded-xl shadow-md p-6">
         {loading ? (
-          <div className="text-gray-600">Loading items…</div>
+          <div className="text-gray-800">Loading items…</div>
         ) : rows.length === 0 ? (
-          <div className="text-gray-500">No inventory items yet. Create items first.</div>
+          <div className="text-gray-800">No inventory items yet. Create items first.</div>
         ) : (
           <>
             <table className="w-full text-sm">
@@ -205,4 +205,8 @@ function cleanInt(raw) {
   const s = String(raw ?? "").replace(/[^\d]/g, "");
   if (s === "") return 0;
   return Number(s.replace(/^0+(?=\d)/, ""));
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
