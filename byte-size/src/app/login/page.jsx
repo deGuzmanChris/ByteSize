@@ -19,8 +19,8 @@ export default function LoginPage() {
       localStorage.setItem("user", JSON.stringify(user));
       router.push("/dashboard");
     } catch (error) {
-      console.error("Google Sign-In Error:", error);
-      alert("Google Sign-In failed. Please try again.");
+      console.error(error);
+      alert("Google Sign-In failed");
     }
   };
 
@@ -95,9 +95,16 @@ export default function LoginPage() {
         <div className="flex justify-center">
           <button
             onClick={handleGoogleSignIn}
-            className="bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded shadow hover:bg-gray-50 flex items-center justify-center w-full"
+            className="w-full bg-white border border-gray-300 text-gray-700 font-semibold py-2 rounded hover:bg-gray-50"
           >
-            Sign in with Google
+            Continue with Google
+          </button>
+
+          <button
+            onClick={() => router.push("/login/email")}
+            className="w-full bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700"
+          >
+            Continue with Email
           </button>
         </div>
 
