@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,8 +7,9 @@ import { getAreas, createArea, deleteArea } from "../../lib/areas";
 import { useDarkMode } from "../../lib/DarkModeContext";
 import DarkToggle from "../components/DarkToggle";
 import Modal from "../components/Modal";
+import CreateAreaModal from "../components/modals/CreateAreaModal";
+import DeleteAreaModal from "../components/modals/DeleteAreaModal";
 import { getColorTokens } from "../components/colorTokens";
-
 
 export default function InventoryPage() {
   const { darkMode } = useDarkMode();
@@ -109,54 +109,27 @@ export default function InventoryPage() {
       )}
 
       {showCreateModal && (
-        <Modal onClose={() => setShowCreateModal(false)} title="Create Area" darkMode={darkMode}>
-          <form className="flex flex-col gap-3" onSubmit={handleCreateArea}>
-            <input
-              className={tokens.inputCls}
-              type="text"
-              placeholder="Enter area name"
-              value={newAreaName}
-              onChange={e => {
-                // Only allow letters and spaces, and max 20 characters
-                const value = e.target.value;
-                if (/^[a-zA-Z\s]{0,20}$/.test(value)) setNewAreaName(value);
-              }}
-              maxLength={20}
-              autoFocus
-            />
-            <div className="text-xs text-gray-500 mt-1 text-left">Max 20 characters</div>
-            <div className="flex justify-end gap-2">
-              <button type="button" className={tokens.cancelBtn} onClick={() => setShowCreateModal(false)}>Cancel</button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-[#8fa481] text-black rounded hover:bg-[#7a926e] transition-colors"
-                disabled={creatingArea}
-              >
-                {creatingArea ? "Creating..." : "Create"}
-              </button>
-            </div>
-          </form>
-        </Modal>
+        <CreateAreaModal
+          onClose={() => setShowCreateModal(false)}
+          onSubmit={handleCreateArea}
+          value={newAreaName}
+          onChange={e => {
+            const value = e.target.value;
+            if (/^[a-zA-Z\s]{0,20}$/.test(value)) setNewAreaName(value);
+          }}
+          creating={creatingArea}
+        />
       )}
 
       {showDeleteModal && (
-        <Modal onClose={() => { setShowDeleteModal(false); setAreaToDelete(null); }} title="Delete Area" darkMode={darkMode}>
-          <div className={`mb-4 ${tokens.text}`}>Are you sure you want to delete this area?</div>
-          <div className="flex justify-end gap-2">
-            <button type="button" className={tokens.cancelBtn} onClick={() => { setShowDeleteModal(false); setAreaToDelete(null); }}>Cancel</button>
-            <button
-              type="button"
-              className="px-4 py-2 bg-[#d9534f] text-white rounded hover:bg-[#c9302c] transition-colors"
-              onClick={() => {
-                if (areaToDelete !== null) handleDeleteArea(areas[areaToDelete]);
-                setShowDeleteModal(false);
-                setAreaToDelete(null);
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        </Modal>
+        <DeleteAreaModal
+          onClose={() => { setShowDeleteModal(false); setAreaToDelete(null); }}
+          onDelete={() => {
+            if (areaToDelete !== null) handleDeleteArea(areas[areaToDelete]);
+            setShowDeleteModal(false);
+            setAreaToDelete(null);
+          }}
+        />
       )}
     </section>
   );
