@@ -1,16 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { FaInfoCircle, FaPen, FaTrash, FaChevronLeft } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { getInventoryItems, createInventoryItem, updateInventoryItem, deleteInventoryItem, getInventoryItem } from "../../lib/inventory";
 import { useSearchParams } from "next/navigation";
-
-const tabs = [
-  { id: "inventory", label: "Inventory" },
-  { id: "ordering", label: "Ordering" },
-  { id: "prep", label: "Prep Lists" },
-  { id: "settings", label: "Settings" },
-];
 
 const categories = [
   "Produce",
@@ -43,7 +37,27 @@ function DeleteConfirmModal({ item, onCancel, onConfirm }) {
   );
 }
 
-export default function AreaItemListPage() {
+
+import { DarkModeProvider, useDarkMode } from "../../lib/DarkModeContext";
+
+function SunIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
+    </svg>
+  );
+}
+function MoonIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
+    </svg>
+  );
+}
+
+
+function AreaItemListContent() {
+  const { darkMode, setDarkMode } = useDarkMode();
   const router = useRouter();
   const searchParams = useSearchParams();
   const areaName = searchParams.get("areaName");
@@ -53,25 +67,43 @@ export default function AreaItemListPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [areaCountInputs, setAreaCountInputs] = useState({});
+  const [savedStatus, setSavedStatus] = useState({});
   const [viewItem, setViewItem] = useState(null); // For viewing item info
   const [editItemIdx, setEditItemIdx] = useState(null); // For editing item
   const [deleteItemIdx, setDeleteItemIdx] = useState(null); // For confirming delete
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleQuantityChange = (idx, value) => {
     setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: value } : item));
   };
   const handleAreaCountInputChange = (idx, value) => {
-    setAreaCountInputs(inputs => ({ ...inputs, [idx]: value }));
+    // Only allow numbers or empty string, and max 2 digits
+    if ((value === "" || /^\d+$/.test(value)) && value.length <= 2) {
+      setAreaCountInputs(inputs => ({ ...inputs, [idx]: value }));
+    }
   };
+  // Always trigger a save and show the indicator, even if the value is unchanged or cleared
   const handleAreaCountEnter = async (idx) => {
     const item = items[idx];
-    const newCount = areaCountInputs[idx];
-    // Update local state
+    let newCount = areaCountInputs[idx];
+    // Allow saving even if input is empty (treat as empty string)
+    if (newCount === undefined || newCount === null) return;
+    // Keep as string for input and storage
     setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: newCount } : item));
-    setAreaCountInputs(inputs => ({ ...inputs, [idx]: "" }));
-    // Update in database
+    setAreaCountInputs(inputs => ({ ...inputs, [idx]: newCount }));
+    // Update in database as string
     if (item.id) {
       await updateInventoryItem(item.id, { ...item, areaCount: newCount });
+      // Always show the save indicator and color, even if value is unchanged
+      setSavedStatus(status => ({ ...status, [idx]: true }));
+      setTimeout(() => {
+        setSavedStatus(status => ({ ...status, [idx]: false }));
+      }, 1200);
+      // If input is empty, reset input to undefined so placeholder shows
+      if (newCount === "") {
+        setAreaCountInputs(inputs => ({ ...inputs, [idx]: undefined }));
+        setItems(items => items.map((item, i) => i === idx ? { ...item, areaCount: "" } : item));
+      }
     }
   };
 
@@ -132,186 +164,254 @@ export default function AreaItemListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaName]);
 
-  // Logout logic
+  // Sidebar and dark mode tokens
+  const tabs = [
+    { id: "inventory", label: "Inventory" },
+    { id: "ordering", label: "Ordering" },
+    { id: "prep", label: "Prep Lists" },
+    { id: "reports", label: "Reports" },
+    { id: "settings", label: "Settings" },
+  ];
+  const [activeTab, setActiveTab] = useState("inventory");
+  const sidebarBg = darkMode ? "bg-[#4a5c38]" : "bg-[#89986D]";
+  const sidebarActiveBg = darkMode ? "bg-[#3a4a2c]" : "bg-[#9CAB84]";
+  const sidebarHover = darkMode ? "hover:bg-[#3a4a2c]/70" : "hover:bg-[#9CAB84]/70";
+  const sidebarBorder = darkMode ? "border-[#3a4a2c]" : "border-[#9CAB84]";
+  const logoutBg = darkMode ? "bg-[#3a4a2c] hover:bg-[#2e3b22]" : "bg-[#7C8A5F] hover:bg-[#6E7B54]";
+  const text = darkMode ? "text-[#f0f0f0]" : "text-black";
+  const bg = darkMode ? "bg-[#1e1e1e]" : "bg-[#F6F0D7]";
+  const cardBg = darkMode ? "bg-[#2d2d2d]" : "bg-white";
+
+  const DarkToggle = ({ className = "" }) => (
+    <button
+      onClick={() => setDarkMode((v) => !v)}
+      aria-label="Toggle dark mode"
+      className={`p-2 rounded transition-colors ${sidebarHover} ${className}`}
+      title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      {darkMode ? <SunIcon /> : <MoonIcon />}
+    </button>
+  );
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     router.replace("/login");
   };
 
   return (
-    <div className="flex h-screen bg-[#F6F0D7] font-sans">
+    <div className={`flex h-screen ${bg} font-sans min-w-90 transition-colors duration-200`}>
+      {/* Mobile top bar */}
+      <header className={`md:hidden flex items-center ${sidebarBg} text-[#F6F0D7] px-4 h-14 shrink-0 transition-colors duration-200`}>
+        <button onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle menu"
+          className={`p-2 rounded ${sidebarHover} transition-colors`}>
+          {sidebarOpen ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
+        <span className="ml-4 text-xl font-semibold flex-1">ByteSize</span>
+        <DarkToggle />
+      </header>
+
+      {/* Backdrop */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-60 bg-[#89986D] text-[#F6F0D7] flex flex-col">
-          <div className="relative w-full border-b border-[#9CAB84]" style={{height: '120px'}}>
-            <img 
-              src="/bytesizelogo.png" 
-              alt="ByteSize Brownie Logo" 
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                display: 'block',
-                margin: 0,
-                padding: 0,
-              }}
-            />
-          </div>
+      <aside className={`
+        fixed top-0 left-0 h-full z-40 w-60
+        ${sidebarBg} text-[#F6F0D7] flex flex-col
+        transition-transform duration-200
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        md:static md:translate-x-0 md:shrink-0
+      `}>
+        <h2 className={`text-center text-xl font-semibold py-5 border-b ${sidebarBorder}`}>ByteSize</h2>
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => {
-              if (tab.id === "inventory") {
-                window.location.href = "/";
-              } else {
-                window.location.href = `/?tab=${tab.id}`;
-              }
-            }}
-            className={`text-left px-5 py-4 transition-colors 
-              ${tab.id === "inventory" ? "bg-[#9CAB84]" : "hover:bg-[#9CAB84]/70"}`}
+            onClick={() => { setSidebarOpen(false); router.push("/dashboard"); }}
+            className={`text-left px-5 py-4 transition-colors ${activeTab === tab.id ? sidebarActiveBg : sidebarHover}`}
           >
             {tab.label}
           </button>
         ))}
-
         <div className="flex-1" />
-
-        <button 
-          onClick={handleLogout}
-          className="px-5 py-4 text-left bg-[#7C8A5F] hover:bg-[#6E7B54] transition-colors"
-        >
+        <div className={`flex items-center justify-between px-5 py-3 border-t ${sidebarBorder}`}>
+          <span className="text-sm opacity-80">{darkMode ? "Dark" : "Light"} mode</span>
+          <DarkToggle />
+        </div>
+        <button onClick={handleLogout} className={`px-5 py-4 text-left transition-colors ${logoutBg}`}>
           Log out
         </button>
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-8 overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            {/* Breadcrumb header: Inventory <- Area */}
-            <span
-              className="text-2xl font-bold text-black cursor-pointer hover:text-[#7a926e]"
-              onClick={() => window.location.href = "/"}
-              style={{ marginRight: '8px' }}
-            >
-              Inventory
-            </span>
-            <span className="text-2xl font-bold text-black" style={{ marginLeft: '4px' }}>
-              &larr;
-            </span>
-            <span className="text-2xl font-bold text-black" style={{ marginLeft: '8px' }}>
-              {areaName}
-            </span>
-          </div>
-          <button
-            className="px-4 py-2 bg-[#89986D] text-white rounded shadow hover:bg-[#7a926e] transition"
-            onClick={() => setShowCreateModal(true)}
-          >
-            Create Item
-          </button>
-        </div>
-        <div className="mb-6">
-          <input
-            className="w-full p-3 rounded bg-white border shadow-md focus:shadow-lg transition-shadow"
-            type="text"
-            placeholder="Search Items"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        {loading ? (
-          <div className="mb-8 bg-[#F6F0D7] rounded-xl shadow-md p-6 min-h-16 flex items-center">
-            <span className="text-gray-400 text-base">Loading items...</span>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="mb-8 bg-[#F6F0D7] rounded-xl shadow-md p-6 min-h-16 flex items-center">
-            <span className="text-gray-400 text-base">No items yet.</span>
-          </div>
-        ) : (
-          <ul className="space-y-4">
-            {filteredItems.map((item, idx) => (
-              <li key={idx} className="bg-[#F6F0D7] rounded-xl shadow-md p-6 min-h-16 flex flex-col justify-center">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="font-semibold text-base" style={{ minWidth: '120px' }}>{item.name}</span>
+      <main className="flex-1">
+        <section>
+          <div className="flex justify-center w-full">
+              <div className="bg-white rounded-xl shadow-md p-6 w-full max-w-md mx-auto my-8 md:max-w-3xl transition-colors duration-200" style={{overflow: 'hidden'}}>
+                <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={areaCountInputs[idx] || ""}
-                      onChange={e => handleAreaCountInputChange(idx, e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === "Enter") {
-                          handleAreaCountEnter(idx);
-                        }
-                      }}
-                      className="w-32 p-2 rounded border text-center"
-                      style={{ minWidth: '110px', height: '40px', marginRight: '8px' }}
-                      placeholder="Enter quantity"
-                    />
-                    <label className="text-xl text-black-500 mr-2" style={{ minWidth: '40px' }}>Total:</label>
-                    <span className="px-2 py-1 bg-gray-100 rounded text-gray-800 font-medium border border-gray-300" style={{ minWidth: '110px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {item.areaCount ? `${item.areaCount} ${item.inventoryUnit || ''}` : item.inventoryUnit || '-'}
-                    </span>
                     <button
-                      className="ml-4 px-3 py-1 bg-[#8fa481] text-white rounded hover:bg-[#7a926e] transition"
-                      onClick={() => setViewItem(item)}
+                      className="text-2xl text-black hover:text-[#7a926e] focus:outline-none flex items-center"
+                      onClick={() => router.push('/dashboard')}
+                      aria-label="Back to Inventory"
                     >
-                      View Info
+                      <FaChevronLeft className="w-6 h-6" />
                     </button>
-                    <button
-                      className="ml-2 px-3 py-1 bg-[#d1b36a] text-white rounded hover:bg-[#bfa14e] transition"
-                      onClick={() => setEditItemIdx(idx)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="ml-2 px-3 py-1 bg-[#e57373] text-white rounded hover:bg-[#c62828] transition"
-                      onClick={() => setDeleteItemIdx(idx)}
-                    >
-                      Delete
-                    </button>
+                    <span className="text-2xl font-bold text-black">{areaName}</span>
                   </div>
-                  {/* Delete Confirmation Modal */}
-                  {deleteItemIdx !== null && (
-                    <DeleteConfirmModal
-                      item={items[deleteItemIdx]}
-                      onCancel={() => setDeleteItemIdx(null)}
-                      onConfirm={() => handleDeleteItem(deleteItemIdx)}
-                    />
-                  )}
+                  <button
+                    className="px-4 py-2 bg-[#8fa481] text-black rounded shadow hover:bg-[#7a926e] transition-colors"
+                    onClick={() => setShowCreateModal(true)}
+                  >
+                    Create Item
+                  </button>
                 </div>
-                <div className="text-gray-600 text-sm">{item.description}</div>
-              </li>
-            ))}
-                  {/* Edit Item Modal */}
-                  {editItemIdx !== null && (
-                    <EditItemModal
-                      item={items[editItemIdx]}
-                      onClose={() => setEditItemIdx(null)}
-                      onSave={updatedItem => handleEditItem(editItemIdx, updatedItem)}
-                      categories={categories}
-                    />
-                  )}
-          </ul>
-        )}
+              <div className="mb-6">
+                <input
+                  className="w-full p-3 rounded bg-white border shadow-md focus:shadow-lg transition-shadow"
+                  type="text"
+                  placeholder="Search Items"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+              </div>
+              {loading ? (
+                <div className="mb-4 text-black">Loading items...</div>
+              ) : filteredItems.length === 0 ? (
+                <div className="mb-4">
+                  <div className="bg-[#F6F0D7] text-black rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 text-base transition-colors duration-200">
+                    No items yet.
+                  </div>
+                </div>
+              ) : (
+                <ul className="space-y-4">
+                  {filteredItems.map((item, idx) => (
+                    <li key={idx}>
+                      <div className="bg-[#F6F0D7] text-black rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 transition-colors duration-200">
+                        <span className="flex-1 font-semibold text-base">{item.name}</span>
+                        {/* Enter Quantity */}
+                          <div className="relative w-20 ml-2 overflow-hidden">
+                          <input
+                            type="number"
+                            maxLength={2}
+                            className="w-full p-1 pr-8 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm"
+                            style={{ MozAppearance: 'textfield' }}
+                            placeholder="Qty"
+                            value={(() => {
+                              // Always return a string, never undefined/null/number
+                              let v = areaCountInputs[idx];
+                              if (v === undefined) v = item.areaCount;
+                              if (v === undefined || v === null) return '';
+                              return v;
+                            })()}
+                            onChange={e => handleAreaCountInputChange(idx, e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') handleAreaCountEnter(idx); }}
+                          />
+                          {/* Nothing should be rendered after the input. If you see a zero here, check for accidental rendering of areaCount or areaCountInputs. */}
+                          {item.inventoryUnit && (
+                            (
+                              (areaCountInputs[idx] !== undefined && String(areaCountInputs[idx]).trim() !== '' && Number(areaCountInputs[idx]) !== 0)
+                              ||
+                              (areaCountInputs[idx] === undefined && item.areaCount && Number(item.areaCount) !== 0)
+                            )
+                          ) && (
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold pointer-events-none select-none px-1 rounded bg-[#F6F0D7]">
+                              {item.inventoryUnit}
+                            </span>
+                          )}
+                          {/* END: nothing else should be here */}
+                        </div>
+                        <button
+                          className={`ml-1 px-2 py-1 rounded transition-colors flex items-center gap-1 ${savedStatus[idx] ? 'bg-green-500 text-white' : 'bg-[#8fa481] text-black hover:bg-[#7a926e]'}`}
+                          onClick={() => handleAreaCountEnter(idx)}
+                          title="Enter Quantity"
+                          aria-label="Enter Quantity"
+                        >
+                          Enter
+                        </button>
+                        {/* View Info */}
+                        <button
+                          className="ml-2 p-2 bg-white border border-[#b7c9a6] text-[#355b2c] rounded-full shadow hover:bg-[#f6f0d7] transition-colors flex items-center justify-center"
+                          onClick={() => setViewItem(item)}
+                          title="View Info"
+                          aria-label="View Info"
+                        >
+                          <FaInfoCircle className="w-5 h-5" />
+                        </button>
+                        {/* Edit Info */}
+                        <button
+                          className="ml-2 p-2 bg-yellow-100 text-yellow-700 rounded-full shadow hover:bg-yellow-200 transition-colors flex items-center justify-center"
+                          onClick={() => setEditItemIdx(idx)}
+                          title="Edit Info"
+                          aria-label="Edit Info"
+                        >
+                          <FaPen className="w-5 h-5" />
+                        </button>
+                        {/* Delete */}
+                        <button
+                          className="ml-2 p-2 bg-[#d9534f] text-white rounded-full shadow hover:bg-[#c9302c] transition-colors flex items-center justify-center"
+                          onClick={() => setDeleteItemIdx(idx)}
+                          title="Delete Item"
+                          aria-label="Delete Item"
+                        >
+                          <FaTrash className="w-5 h-5" />
+                        </button>
+                        {/* Delete Confirmation Modal */}
+                        {deleteItemIdx === idx && (
+                          <DeleteConfirmModal
+                            item={items[deleteItemIdx]}
+                            onCancel={() => setDeleteItemIdx(null)}
+                            onConfirm={() => handleDeleteItem(deleteItemIdx)}
+                          />
+                        )}
+                        {/* Edit Modal */}
+                        {editItemIdx === idx && (
+                          <EditItemModal
+                            item={items[editItemIdx]}
+                            onClose={() => setEditItemIdx(null)}
+                            onSave={updated => handleEditItem(editItemIdx, updated)}
+                            categories={categories}
+                          />
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
-        {/* Create Item Modal */}
-        {showCreateModal && (
-          <CreateItemModal
-            onClose={() => setShowCreateModal(false)}
-            onCreate={handleCreateItem}
-          />
-        )}
+            {/* Create Item Modal */}
+            {showCreateModal && (
+              <CreateItemModal
+                onClose={() => setShowCreateModal(false)}
+                onCreate={handleCreateItem}
+              />
+            )}
 
-        {/* View Item Info Modal */}
-        {viewItem && (
-          <ViewItemModal itemId={viewItem.id} onClose={() => setViewItem(null)} />
-        )}
+            {/* View Item Info Modal */}
+            {viewItem && (
+              <ViewItemModal itemId={viewItem.id} onClose={() => setViewItem(null)} />
+            )}
+          </div>
+        </div>
+        </section>
       </main>
     </div>
+  );
+}
+
+export default function AreaItemListPage() {
+  return (
+    <DarkModeProvider>
+      <AreaItemListContent />
+    </DarkModeProvider>
   );
 }
 

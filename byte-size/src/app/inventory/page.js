@@ -42,6 +42,8 @@ export default function InventoryPage() {
   const handleCreateArea = async (e) => {
     e.preventDefault();
     if (newAreaName.trim() === "") return;
+    // Only allow letters and spaces, and max 20 characters
+    if (!/^[a-zA-Z\s]{1,20}$/.test(newAreaName.trim())) return;
     await createArea(newAreaName.trim());
     setNewAreaName("");
     setShowCreateModal(false);
@@ -108,15 +110,21 @@ export default function InventoryPage() {
 
       {showCreateModal && (
         <Modal onClose={() => setShowCreateModal(false)} title="Create Area" darkMode={darkMode}>
-          <form className="flex flex-col gap-4" onSubmit={handleCreateArea}>
+          <form className="flex flex-col gap-3" onSubmit={handleCreateArea}>
             <input
               className={inputCls}
               type="text"
               placeholder="Enter area name"
               value={newAreaName}
-              onChange={e => setNewAreaName(e.target.value)}
+              onChange={e => {
+                // Only allow letters and spaces, and max 20 characters
+                const value = e.target.value;
+                if (/^[a-zA-Z\s]{0,20}$/.test(value)) setNewAreaName(value);
+              }}
+              maxLength={20}
               autoFocus
             />
+            <div className="text-xs text-gray-500 mt-1 text-left">Max 20 characters</div>
             <div className="flex justify-end gap-2">
               <button type="button" className={cancelBtn} onClick={() => setShowCreateModal(false)}>Cancel</button>
               <button type="submit" className="px-4 py-2 bg-[#8fa481] text-black rounded hover:bg-[#7a926e] transition-colors">Create</button>
