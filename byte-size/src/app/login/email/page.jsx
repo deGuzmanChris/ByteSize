@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../lib/firebase";
-import useAuth from "../../lib/useAuth";
+import useAuth, { setAuthCookie } from "../../lib/useAuth";
 
 export default function EmailLoginPage() {
   const router = useRouter();
@@ -22,7 +22,9 @@ export default function EmailLoginPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const token = await result.user.getIdToken();
+      setAuthCookie(token);
     } catch (error) {
       alert(error.message);
     } finally {

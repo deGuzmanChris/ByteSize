@@ -81,6 +81,8 @@ function DashboardContent() {
 
   const handleLogout = async () => {
     try {
+      // Clear cookie before signOut so middleware doesn't see a stale token on redirect
+      document.cookie = "bytesize-auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       await signOut(auth);
       router.replace("/login");
     } catch (err) {

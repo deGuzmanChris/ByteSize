@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth, provider, db } from "../../lib/firebase";
+
+import { auth, provider } from "../../lib/firebase";
 import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
+import { setAuthCookie } from "../../lib/useAuth";
 import { doc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
@@ -14,9 +16,9 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      console.log("Firebase Google User:", user);
-      localStorage.setItem("user", JSON.stringify(user));
+
+      const token = await result.user.getIdToken();
+      setAuthCookie(token);
       router.push("/dashboard");
     } catch (error) {
       console.error(error);
@@ -28,9 +30,9 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      const user = result.user;
-      console.log("Firebase Email User:", user);
-      localStorage.setItem("user", JSON.stringify(user));
+
+      const token = await result.user.getIdToken();
+      setAuthCookie(token);
       router.push("/dashboard");
     } catch (error) {
       console.error("Email Sign-In Error:", error);
