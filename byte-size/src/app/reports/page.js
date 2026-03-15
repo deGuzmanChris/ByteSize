@@ -1,8 +1,20 @@
+
 "use client";
+// SummaryCard component for report summary display
+function SummaryCard({ cardBg, label, value, sub }) {
+  return (
+    <div className={`${cardBg} rounded-xl shadow p-5 transition-colors duration-200`}>
+      <p className="text-sm text-gray-500 mb-1">{label}</p>
+      <p className="text-2xl font-bold truncate">{value}</p>
+      {sub && <p className="text-sm text-gray-400 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
 
 import { useState, useEffect, useMemo } from "react";
 import { getOrderHistory } from "../../lib/orderHistory";
 import { useDarkMode } from "../../lib/DarkModeContext";
+import { getColorTokens } from "../components/colorTokens";
 
 const TIMELINES = [
   { label: "Week", days: 7 },
@@ -16,14 +28,16 @@ function sinceDate(days) {
   return d.toISOString();
 }
 
-export default function ReportsPage() {
+
+function ReportsPage() {
   const { darkMode } = useDarkMode();
   const [timeline, setTimeline] = useState(TIMELINES[1]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Dark mode color tokens
-  const text = darkMode ? "text-[#f0f0f0]" : "text-black";
+  // Use shared color tokens
+  const tokens = getColorTokens(darkMode);
+  const text = tokens.text;
   const muted = darkMode ? "text-gray-400" : "text-gray-500";
   const cardBg = darkMode ? "bg-[#2d2d2d]" : "bg-white";
   const innerCard = darkMode ? "bg-[#3a3a3a]" : "bg-[#F6F0D7]";
@@ -215,12 +229,4 @@ export default function ReportsPage() {
   );
 }
 
-function SummaryCard({ cardBg, label, value, sub }) {
-  return (
-    <div className={`${cardBg} rounded-xl shadow p-5 transition-colors duration-200`}>
-      <p className="text-sm text-gray-500 mb-1">{label}</p>
-      <p className="text-2xl font-bold truncate">{value}</p>
-      {sub && <p className="text-sm text-gray-400 mt-0.5">{sub}</p>}
-    </div>
-  );
-}
+export default ReportsPage;

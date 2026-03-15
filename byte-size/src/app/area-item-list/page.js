@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -5,6 +6,9 @@ import { FaInfoCircle, FaPen, FaTrash, FaChevronLeft } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { getInventoryItems, createInventoryItem, updateInventoryItem, deleteInventoryItem, getInventoryItem } from "../../lib/inventory";
 import { useSearchParams } from "next/navigation";
+import DarkToggle from "../components/DarkToggle.jsx";
+import Modal from "../components/Modal.jsx";
+import { getColorTokens } from "../components/colorTokens.js";
 
 const categories = [
   "Produce",
@@ -15,13 +19,13 @@ const categories = [
   "Sauces",
 ];
 
-function DeleteConfirmModal({ item, onCancel, onConfirm }) {
+function DeleteConfirmModal({ item, onCancel, onConfirm, darkMode }) {
   return (
-    <Modal onClose={onCancel} title="Delete Item?">
+    <Modal onClose={onCancel} title="Delete Item?" darkMode={darkMode}>
       <div className="mb-4 ">Are you sure you want to delete this item?</div>
       <div className="flex justify-end gap-4">
         <button
-          className="px-6 py-2 rounded-lg bg-[#d1d5db] text-black hover:bg-gray-400"
+          className={getColorTokens(darkMode).cancelBtn}
           onClick={onCancel}
         >
           Cancel
@@ -39,21 +43,6 @@ function DeleteConfirmModal({ item, onCancel, onConfirm }) {
 
 
 import { DarkModeProvider, useDarkMode } from "../../lib/DarkModeContext";
-
-function SunIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
-    </svg>
-  );
-}
-function MoonIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
-    </svg>
-  );
-}
 
 
 function AreaItemListContent() {
@@ -173,25 +162,21 @@ function AreaItemListContent() {
     { id: "settings", label: "Settings" },
   ];
   const [activeTab, setActiveTab] = useState("inventory");
-  const sidebarBg = darkMode ? "bg-[#4a5c38]" : "bg-[#89986D]";
-  const sidebarActiveBg = darkMode ? "bg-[#3a4a2c]" : "bg-[#9CAB84]";
-  const sidebarHover = darkMode ? "hover:bg-[#3a4a2c]/70" : "hover:bg-[#9CAB84]/70";
-  const sidebarBorder = darkMode ? "border-[#3a4a2c]" : "border-[#9CAB84]";
-  const logoutBg = darkMode ? "bg-[#3a4a2c] hover:bg-[#2e3b22]" : "bg-[#7C8A5F] hover:bg-[#6E7B54]";
-  const text = darkMode ? "text-[#f0f0f0]" : "text-black";
-  const bg = darkMode ? "bg-[#1e1e1e]" : "bg-[#F6F0D7]";
-  const cardBg = darkMode ? "bg-[#2d2d2d]" : "bg-white";
-
-  const DarkToggle = ({ className = "" }) => (
-    <button
-      onClick={() => setDarkMode((v) => !v)}
-      aria-label="Toggle dark mode"
-      className={`p-2 rounded transition-colors ${sidebarHover} ${className}`}
-      title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-    >
-      {darkMode ? <SunIcon /> : <MoonIcon />}
-    </button>
-  );
+  const colorTokens = getColorTokens(darkMode);
+  const sidebarBg = colorTokens.sidebarBg;
+  const sidebarActiveBg = colorTokens.sidebarActiveBg;
+  const sidebarHover = colorTokens.sidebarHover;
+  const sidebarBorder = colorTokens.sidebarBorder;
+  const logoutBg = colorTokens.logoutBg;
+  // Always use white text in dark mode
+  const text = darkMode ? "text-white" : colorTokens.text;
+  const bg = colorTokens.bg;
+  // Main card box: dark in dark mode, white in light mode
+  // Match the area card color in dark mode (#393939)
+  const mainCardBg = darkMode ? "bg-[#393939]" : "bg-white";
+  // In dark mode, use a more distinct card background and lighter text for area items
+  const cardBg = darkMode ? "bg-[#232a23]" : colorTokens.cardBg;
+  const cardText = darkMode ? "text-white" : text;
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -199,7 +184,7 @@ function AreaItemListContent() {
   };
 
   return (
-    <div className={`flex h-screen ${bg} font-sans min-w-90 transition-colors duration-200`}>
+    <div className={`flex h-screen ${bg} font-sans min-w-90 transition-colors duration-200 ${darkMode ? 'text-white' : ''}`}>
       {/* Mobile top bar */}
       <header className={`md:hidden flex items-center ${sidebarBg} text-[#F6F0D7] px-4 h-14 shrink-0 transition-colors duration-200`}>
         <button onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle menu"
@@ -215,7 +200,7 @@ function AreaItemListContent() {
           )}
         </button>
         <span className="ml-4 text-xl font-semibold flex-1">ByteSize</span>
-        <DarkToggle />
+        <DarkToggle className={sidebarHover} />
       </header>
 
       {/* Backdrop */}
@@ -244,7 +229,7 @@ function AreaItemListContent() {
         <div className="flex-1" />
         <div className={`flex items-center justify-between px-5 py-3 border-t ${sidebarBorder}`}>
           <span className="text-sm opacity-80">{darkMode ? "Dark" : "Light"} mode</span>
-          <DarkToggle />
+          <DarkToggle className={sidebarHover} />
         </div>
         <button onClick={handleLogout} className={`px-5 py-4 text-left transition-colors ${logoutBg}`}>
           Log out
@@ -255,28 +240,29 @@ function AreaItemListContent() {
       <main className="flex-1">
         <section>
           <div className="flex justify-center w-full">
-              <div className="bg-white rounded-xl shadow-md p-6 w-full max-w-md mx-auto my-8 md:max-w-3xl transition-colors duration-200" style={{overflow: 'hidden'}}>
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="text-2xl text-black hover:text-[#7a926e] focus:outline-none flex items-center"
-                      onClick={() => router.push('/dashboard')}
-                      aria-label="Back to Inventory"
-                    >
-                      <FaChevronLeft className="w-6 h-6" />
-                    </button>
-                    <span className="text-2xl font-bold text-black">{areaName}</span>
-                  </div>
+            <div className={`${mainCardBg} rounded-xl shadow-md p-6 w-full max-w-md mx-auto my-8 md:max-w-3xl transition-colors duration-200`} style={{overflow: 'hidden'}}>
+              <div className={`${darkMode ? 'bg-[#393939]' : ''} rounded-xl w-full h-full p-0 m-0`}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
                   <button
-                    className="px-4 py-2 bg-[#8fa481] text-black rounded shadow hover:bg-[#7a926e] transition-colors"
-                    onClick={() => setShowCreateModal(true)}
+                    className={`text-2xl font-bold ${text} hover:text-[#7a926e] focus:outline-none flex items-center`}
+                    onClick={() => router.push('/dashboard')}
+                    aria-label="Back to Inventory"
                   >
-                    Create Item
+                    <FaChevronLeft className="w-6 h-6" />
                   </button>
+                  <span className={`text-2xl font-bold ${text}`}>{areaName}</span>
                 </div>
+                <button
+                  className={`px-4 py-2 ${sidebarActiveBg} ${text} rounded shadow hover:${sidebarHover} transition-colors`}
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  Create Item
+                </button>
+              </div>
               <div className="mb-6">
                 <input
-                  className="w-full p-3 rounded bg-white border shadow-md focus:shadow-lg transition-shadow"
+                  className={`${darkMode ? 'bg-[#393939] text-white border-[#555]' : 'bg-white'} ${text} w-full p-3 rounded border shadow-md focus:shadow-lg transition-shadow`}
                   type="text"
                   placeholder="Search Items"
                   value={search}
@@ -284,10 +270,10 @@ function AreaItemListContent() {
                 />
               </div>
               {loading ? (
-                <div className="mb-4 text-black">Loading items...</div>
+                <div className={`mb-4 ${text}`}>Loading items...</div>
               ) : filteredItems.length === 0 ? (
                 <div className="mb-4">
-                  <div className="bg-[#F6F0D7] text-black rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 text-base transition-colors duration-200">
+                  <div className={`${darkMode ? 'bg-[#393939]' : cardBg} ${text} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 text-base transition-colors duration-200`}>
                     No items yet.
                   </div>
                 </div>
@@ -295,14 +281,14 @@ function AreaItemListContent() {
                 <ul className="space-y-4">
                   {filteredItems.map((item, idx) => (
                     <li key={idx}>
-                      <div className="bg-[#F6F0D7] text-black rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 transition-colors duration-200">
+                      <div className={`${darkMode ? 'bg-[#414141] text-white' : cardBg + ' ' + cardText} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 transition-colors duration-200`}>
                         <span className="flex-1 font-semibold text-base">{item.name}</span>
                         {/* Enter Quantity */}
                         <div className="flex items-center gap-1 ml-1" style={{ minWidth: '100px' }}>
                           <input
                             type="number"
                             maxLength={2}
-                            className="w-12 h-8 p-1 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center align-middle"
+                            className={`${darkMode ? 'bg-[#393939] text-white border-[#555]' : cardBg + ' ' + cardText} w-12 h-8 p-1 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center align-middle`}
                             style={{ MozAppearance: 'textfield', marginRight: '2px' }}
                             placeholder="Qty"
                             value={(() => {
@@ -315,13 +301,13 @@ function AreaItemListContent() {
                             onKeyDown={e => { if (e.key === 'Enter') handleAreaCountEnter(idx); }}
                           />
                           {item.inventoryUnit && (
-                            <span className="text-xs font-bold px-1 rounded bg-[#F6F0D7] whitespace-nowrap min-w-[36px] text-left align-middle">
+                            <span className={`text-xs font-bold px-1 rounded ${darkMode ? 'bg-[#414141] text-white' : cardBg + ' ' + cardText} whitespace-nowrap min-w-9 text-left align-middle`}>
                               {item.inventoryUnit}
                             </span>
                           )}
                         </div>
                         <button
-                          className={`ml-1 px-2 py-1 rounded transition-colors flex items-center gap-1 ${savedStatus[idx] ? 'bg-green-500 text-white' : 'bg-[#8fa481] text-black hover:bg-[#7a926e]'}`}
+                          className={`ml-1 px-2 py-1 rounded transition-colors flex items-center gap-1 ${savedStatus[idx] ? 'bg-green-500 text-white' : `${sidebarActiveBg} ${text} hover:${sidebarHover}`}`}
                           onClick={() => handleAreaCountEnter(idx)}
                           title="Enter Quantity"
                           aria-label="Enter Quantity"
@@ -330,7 +316,7 @@ function AreaItemListContent() {
                         </button>
                         {/* View Info */}
                         <button
-                          className="ml-2 p-2 bg-white border border-[#b7c9a6] text-[#355b2c] rounded-full shadow hover:bg-[#f6f0d7] transition-colors flex items-center justify-center"
+                          className={`ml-2 p-2 ${darkMode ? 'bg-[#393939]' : cardBg} border border-[#b7c9a6] text-[#355b2c] rounded-full shadow hover:${darkMode ? 'bg-[#393939]' : cardBg} transition-colors flex items-center justify-center`}
                           onClick={() => setViewItem(item)}
                           title="View Info"
                           aria-label="View Info"
@@ -361,6 +347,7 @@ function AreaItemListContent() {
                             item={items[deleteItemIdx]}
                             onCancel={() => setDeleteItemIdx(null)}
                             onConfirm={() => handleDeleteItem(deleteItemIdx)}
+                            darkMode={darkMode}
                           />
                         )}
                         {/* Edit Modal */}
@@ -377,21 +364,22 @@ function AreaItemListContent() {
                   ))}
                 </ul>
               )}
+              </div>
 
-            {/* Create Item Modal */}
-            {showCreateModal && (
-              <CreateItemModal
-                onClose={() => setShowCreateModal(false)}
-                onCreate={handleCreateItem}
-              />
-            )}
+              {/* Create Item Modal */}
+              {showCreateModal && (
+                <CreateItemModal
+                  onClose={() => setShowCreateModal(false)}
+                  onCreate={handleCreateItem}
+                />
+              )}
 
-            {/* View Item Info Modal */}
-            {viewItem && (
-              <ViewItemModal itemId={viewItem.id} onClose={() => setViewItem(null)} />
-            )}
+              {/* View Item Info Modal */}
+              {viewItem && (
+                <ViewItemModal itemId={viewItem.id} onClose={() => setViewItem(null)} />
+              )}
+            </div>
           </div>
-        </div>
         </section>
       </main>
     </div>
@@ -418,6 +406,9 @@ function EditItemModal({ item, onClose, onSave, categories }) {
     time_created: item.time_created || "",
   });
 
+  const { darkMode } = useDarkMode();
+  const colorTokens = getColorTokens(darkMode);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -429,46 +420,46 @@ function EditItemModal({ item, onClose, onSave, categories }) {
   };
 
   return (
-    <Modal onClose={onClose} title={`Edit Item: ${form.item_name || ''}`}>
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <Modal onClose={onClose} title={`Edit Item: ${form.item_name || ''}`} darkMode={darkMode}>
+      <form onSubmit={handleSubmit} className={`space-y-6 ${darkMode ? 'text-white' : ''}`}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+          <div className="flex flex-col">
             <label className="block font-medium mb-1">Item Name</label>
             <input
               name="item_name"
               value={form.item_name}
               onChange={handleChange}
               required
-              className="w-full p-3 rounded-lg border"
+              className={colorTokens.inputCls + " w-full"}
             />
           </div>
-          <div>
+          <div className="flex flex-col">
             <label className="block font-medium mb-1">Item ID</label>
             <input
               name="itemId"
               value={form.itemId}
               onChange={handleChange}
               required
-              className="w-full p-3 rounded-lg border"
+              className={colorTokens.inputCls + " w-full"}
             />
           </div>
-          <div>
+          <div className="flex flex-col">
             <label className="block font-medium mb-1">Vendor Number</label>
             <input
               name="vendorNumber"
               value={form.vendorNumber}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg border"
+              className={colorTokens.inputCls + " w-full"}
             />
           </div>
-          <div>
+          <div className="flex flex-col">
             <label className="block font-medium mb-1">Category</label>
               <select
                 name="category"
                 value={form.category}
                 onChange={handleChange}
                 required
-                className="w-full p-3 rounded-lg border"
+                className={colorTokens.selectCls + " w-full"}
               >
                 <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select category</option>
                 {categories.map((cat) => (
@@ -480,7 +471,7 @@ function EditItemModal({ item, onClose, onSave, categories }) {
         <div className="border-t pt-6">
           <h2 className="text-lg font-semibold mb-4">Inventory Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
+            <div className="flex flex-col">
               <label className="block font-medium mb-1">Inventory Unit</label>
               <input
                 name="inventoryUnit"
@@ -488,10 +479,10 @@ function EditItemModal({ item, onClose, onSave, categories }) {
                 value={form.inventoryUnit}
                 onChange={handleChange}
                 required
-                className="w-full p-3 rounded-lg border"
+                className={colorTokens.inputCls + " w-full"}
               />
             </div>
-            <div>
+            <div className="flex flex-col">
               <label className="block font-medium mb-1">Purchase Unit</label>
               <input
                 name="purchaseUnit"
@@ -499,10 +490,10 @@ function EditItemModal({ item, onClose, onSave, categories }) {
                 value={form.purchaseUnit}
                 onChange={handleChange}
                 required
-                className="w-full p-3 rounded-lg border"
+                className={colorTokens.inputCls + " w-full"}
               />
             </div>
-            <div>
+            <div className="flex flex-col">
               <label className="block font-medium mb-1">Purchase Par</label>
               <input
                 name="purchasePar"
@@ -510,7 +501,7 @@ function EditItemModal({ item, onClose, onSave, categories }) {
                 value={form.purchasePar}
                 onChange={handleChange}
                 required
-                className="w-full p-3 rounded-lg border"
+                className={colorTokens.inputCls + " w-full"}
               />
             </div>
           </div>
@@ -518,14 +509,18 @@ function EditItemModal({ item, onClose, onSave, categories }) {
         <div className="flex justify-end gap-4 pt-6">
           <button
             type="button"
-            className="px-6 py-2 rounded-lg bg-[#d1d5db] text-black hover:bg-gray-400"
+            className={colorTokens.cancelBtn}
             onClick={onClose}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-6 py-2 rounded-lg bg-[#8fa481] text-white hover:bg-[#7a926e]"
+            className={
+              darkMode
+                ? "px-4 py-2 bg-[#4a5c38] text-white rounded shadow hover:bg-[#3a4a2c] transition-colors"
+                : "px-4 py-2 bg-[#8fa481] text-black rounded shadow hover:bg-[#7a926e] transition-colors"
+            }
           >
             Save Changes
           </button>
@@ -537,6 +532,7 @@ function EditItemModal({ item, onClose, onSave, categories }) {
 
 function ViewItemModal({ itemId, onClose }) {
   const [item, setItem] = useState(null);
+  const { darkMode } = useDarkMode();
   useEffect(() => {
     async function fetchItem() {
       const fetched = await getInventoryItem(itemId);
@@ -546,14 +542,15 @@ function ViewItemModal({ itemId, onClose }) {
   }, [itemId]);
   if (!item) {
     return (
-      <Modal onClose={onClose} title="Loading...">
+      <Modal onClose={onClose} title="Loading..." darkMode={darkMode}>
         <div>Loading item information...</div>
       </Modal>
     );
   }
+  const text = darkMode ? "text-white" : getColorTokens(darkMode).text;
   return (
-    <Modal onClose={onClose} title={item.name || item.item_name || "Item Info"}>
-      <div className="space-y-2">
+    <Modal onClose={onClose} title={item.name || item.item_name || "Item Info"} darkMode={darkMode}>
+      <div className={`space-y-2 ${text}`}>
         <div><span className="font-semibold">Item ID:</span> {item.itemId || item.id || '-'} </div>
         <div><span className="font-semibold">Vendor Number:</span> {item.vendorNumber || '-'} </div>
         <div><span className="font-semibold">Category:</span> {item.category || '-'} </div>
@@ -563,7 +560,7 @@ function ViewItemModal({ itemId, onClose }) {
       </div>
       <div className="flex justify-end mt-6">
         <button
-          className="px-6 py-2 rounded-lg bg-[#8fa481] text-white hover:bg-[#7a926e]"
+          className="px-6 py-2 rounded-lg bg-[#8fa481] text-black hover:bg-[#7a926e]"
           onClick={onClose}
         >
           Close
@@ -585,6 +582,9 @@ function CreateItemModal({ onClose, onCreate }) {
     time_created: new Date().toISOString(),
   });
 
+  const { darkMode } = useDarkMode();
+  const colorTokens = getColorTokens(darkMode);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -601,46 +601,46 @@ function CreateItemModal({ onClose, onCreate }) {
   const purchaseUnitOptions = ["case", "box", "bag", "carton", "bottle", "can", "pack", "tray", "roll", "dozen"];
 
   return (
-    <Modal onClose={onClose} title="Create Item">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <Modal onClose={onClose} title="Create Item" darkMode={darkMode}>
+      <form onSubmit={handleSubmit} className={`space-y-6 ${darkMode ? 'text-white' : ''}`}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+          <div className="flex flex-col">
             <label className="block font-medium mb-1">Item Name</label>
             <input
               name="item_name"
               value={form.item_name}
               onChange={handleChange}
               required
-              className="w-full p-3 rounded-lg border"
+              className={colorTokens.inputCls + " w-full"}
             />
           </div>
-          <div>
+          <div className="flex flex-col">
             <label className="block font-medium mb-1">Item ID</label>
             <input
               name="itemId"
               value={form.itemId}
               onChange={handleChange}
               required
-              className="w-full p-3 rounded-lg border"
+              className={colorTokens.inputCls + " w-full"}
             />
           </div>
-          <div>
+          <div className="flex flex-col">
             <label className="block font-medium mb-1">Vendor Number</label>
             <input
               name="vendorNumber"
               value={form.vendorNumber}
               onChange={handleChange}
-              className="w-full p-3 rounded-lg border"
+              className={colorTokens.inputCls + " w-full"}
             />
           </div>
-          <div>
+          <div className="flex flex-col">
             <label className="block font-medium mb-1">Category</label>
               <select
                 name="category"
                 value={form.category}
                 onChange={handleChange}
                 required
-                className="w-full p-3 rounded-lg border"
+                className={colorTokens.selectCls + " w-full"}
               >
                 <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select category</option>
                 {categories.map((cat) => (
@@ -652,14 +652,14 @@ function CreateItemModal({ onClose, onCreate }) {
         <div className="border-t pt-6">
           <h2 className="text-lg font-semibold mb-4">Inventory Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
+            <div className="flex flex-col">
               <label className="block font-medium mb-1">Inventory Unit</label>
               <select
                 name="inventoryUnit"
                 value={form.inventoryUnit}
                 onChange={handleChange}
                 required
-                className="w-full p-3 rounded-lg border"
+                className={colorTokens.selectCls + " w-full"}
               >
                 <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select unit</option>
                 {inventoryUnitOptions.map((unit) => (
@@ -667,14 +667,14 @@ function CreateItemModal({ onClose, onCreate }) {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="flex flex-col">
               <label className="block font-medium mb-1">Purchase Unit</label>
               <select
                 name="purchaseUnit"
                 value={form.purchaseUnit}
                 onChange={handleChange}
                 required
-                className="w-full p-3 rounded-lg border"
+                className={colorTokens.selectCls + " w-full"}
               >
                 <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select unit</option>
                 {purchaseUnitOptions.map((unit) => (
@@ -682,7 +682,7 @@ function CreateItemModal({ onClose, onCreate }) {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="flex flex-col">
               <label className="block font-medium mb-1">Purchase Par</label>
               <input
                 name="purchasePar"
@@ -690,7 +690,7 @@ function CreateItemModal({ onClose, onCreate }) {
                 value={form.purchasePar}
                 onChange={handleChange}
                 required
-                className="w-full p-3 rounded-lg border"
+                className={colorTokens.inputCls + " w-full"}
               />
             </div>
           </div>
@@ -698,14 +698,18 @@ function CreateItemModal({ onClose, onCreate }) {
         <div className="flex justify-end gap-4 pt-6">
           <button
             type="button"
-            className="px-6 py-2 rounded-lg bg-[#d1d5db] text-black hover:bg-gray-400"
+            className={colorTokens.cancelBtn}
             onClick={onClose}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-6 py-2 rounded-lg bg-[#8fa481] text-white hover:bg-[#7a926e]"
+            className={
+              darkMode
+                ? "px-4 py-2 bg-[#4a5c38] text-white rounded shadow hover:bg-[#3a4a2c] transition-colors"
+                : "px-4 py-2 bg-[#8fa481] text-black rounded shadow hover:bg-[#7a926e] transition-colors"
+            }
           >
             Create Item
           </button>
@@ -715,20 +719,4 @@ function CreateItemModal({ onClose, onCreate }) {
   );
 }
 
-function Modal({ onClose, title, children }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(246, 240, 215, 0.7)' }}>
-      <div className="bg-white rounded-lg shadow-lg p-6 min-w-[320px] relative">
-        <button
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl font-bold"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          ×
-        </button>
-        <h2 className="text-lg font-bold mb-4">{title}</h2>
-        {children}
-      </div>
-    </div>
-  );
-}
+// ...existing code...

@@ -3,22 +3,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { getInventoryItems } from "../../lib/inventory";
 import { logOrder } from "../../lib/orderHistory";
+
+
 import { useDarkMode } from "../../lib/DarkModeContext";
+import { getColorTokens } from "../components/colorTokens";
 
 export default function OrderPage() {
   const { darkMode } = useDarkMode();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Dark mode color tokens
-  const text = darkMode ? "text-[#f0f0f0]" : "text-black";
-  const cardBg = darkMode ? "bg-[#3a3a3a]" : "bg-[#F6F0D7]";
+  // Use shared color tokens
+  const tokens = getColorTokens(darkMode);
+  const text = tokens.text;
+  const cardBg = tokens.cardBg;
   const borderCls = darkMode ? "border-[#555]" : "border-b";
   const inputCls = darkMode
     ? "w-20 text-right rounded border px-2 py-1 bg-[#4a4a4a] text-[#f0f0f0] border-[#555]"
     : "w-20 text-right rounded border px-2 py-1 bg-white";
   const mutedText = darkMode ? "text-gray-400" : "text-gray-500";
 
+  // ...existing code...
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -204,9 +209,9 @@ export default function OrderPage() {
   );
 }
 
-// Converts inputs or raw data into safe integers for clean calculations and prevents NaN errors
-function cleanInt(raw) {
-  const s = String(raw ?? "").replace(/[^\d]/g, "");
-  if (s === "") return 0;
-  return Number(s.replace(/^0+(?=\d)/, ""));
-}
+  // Converts inputs or raw data into safe integers for clean calculations and prevents NaN errors
+  function cleanInt(raw) {
+    const s = String(raw ?? "").replace(/[^\d]/g, "");
+    if (s === "") return 0;
+    return Number(s.replace(/^0+(?=\d)/, ""));
+  }
