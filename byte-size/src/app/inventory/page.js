@@ -15,6 +15,7 @@ export default function InventoryPage() {
   const [areaDocs, setAreaDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newAreaName, setNewAreaName] = useState("");
+  const [creatingArea, setCreatingArea] = useState(false);
 
   // Dark mode color tokens
   const text = darkMode ? "text-[#f0f0f0]" : "text-black";
@@ -42,14 +43,15 @@ export default function InventoryPage() {
   const handleCreateArea = async (e) => {
     e.preventDefault();
     if (newAreaName.trim() === "") return;
-    // Only allow letters and spaces, and max 20 characters
     if (!/^[a-zA-Z\s]{1,20}$/.test(newAreaName.trim())) return;
+    setCreatingArea(true);
     await createArea(newAreaName.trim());
     setNewAreaName("");
     setShowCreateModal(false);
     const areaList = await getAreas();
     setAreaDocs(areaList);
     setAreas(areaList.map(area => area.name));
+    setCreatingArea(false);
   };
 
   const handleDeleteArea = async (areaName) => {
@@ -127,7 +129,13 @@ export default function InventoryPage() {
             <div className="text-xs text-gray-500 mt-1 text-left">Max 20 characters</div>
             <div className="flex justify-end gap-2">
               <button type="button" className={cancelBtn} onClick={() => setShowCreateModal(false)}>Cancel</button>
-              <button type="submit" className="px-4 py-2 bg-[#8fa481] text-black rounded hover:bg-[#7a926e] transition-colors">Create</button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-[#8fa481] text-black rounded hover:bg-[#7a926e] transition-colors"
+                disabled={creatingArea}
+              >
+                {creatingArea ? "Creating..." : "Create"}
+              </button>
             </div>
           </form>
         </Modal>

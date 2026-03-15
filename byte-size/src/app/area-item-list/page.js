@@ -298,15 +298,14 @@ function AreaItemListContent() {
                       <div className="bg-[#F6F0D7] text-black rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 transition-colors duration-200">
                         <span className="flex-1 font-semibold text-base">{item.name}</span>
                         {/* Enter Quantity */}
-                          <div className="relative w-20 ml-2 overflow-hidden">
+                        <div className="flex items-center gap-1 ml-1" style={{ minWidth: '100px' }}>
                           <input
                             type="number"
                             maxLength={2}
-                            className="w-full p-1 pr-8 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm"
-                            style={{ MozAppearance: 'textfield' }}
+                            className="w-12 h-8 p-1 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center align-middle"
+                            style={{ MozAppearance: 'textfield', marginRight: '2px' }}
                             placeholder="Qty"
                             value={(() => {
-                              // Always return a string, never undefined/null/number
                               let v = areaCountInputs[idx];
                               if (v === undefined) v = item.areaCount;
                               if (v === undefined || v === null) return '';
@@ -315,19 +314,11 @@ function AreaItemListContent() {
                             onChange={e => handleAreaCountInputChange(idx, e.target.value)}
                             onKeyDown={e => { if (e.key === 'Enter') handleAreaCountEnter(idx); }}
                           />
-                          {/* Nothing should be rendered after the input. If you see a zero here, check for accidental rendering of areaCount or areaCountInputs. */}
                           {item.inventoryUnit && (
-                            (
-                              (areaCountInputs[idx] !== undefined && String(areaCountInputs[idx]).trim() !== '' && Number(areaCountInputs[idx]) !== 0)
-                              ||
-                              (areaCountInputs[idx] === undefined && item.areaCount && Number(item.areaCount) !== 0)
-                            )
-                          ) && (
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold pointer-events-none select-none px-1 rounded bg-[#F6F0D7]">
+                            <span className="text-xs font-bold px-1 rounded bg-[#F6F0D7] whitespace-nowrap min-w-[36px] text-left align-middle">
                               {item.inventoryUnit}
                             </span>
                           )}
-                          {/* END: nothing else should be here */}
                         </div>
                         <button
                           className={`ml-1 px-2 py-1 rounded transition-colors flex items-center gap-1 ${savedStatus[idx] ? 'bg-green-500 text-white' : 'bg-[#8fa481] text-black hover:bg-[#7a926e]'}`}
@@ -472,18 +463,18 @@ function EditItemModal({ item, onClose, onSave, categories }) {
           </div>
           <div>
             <label className="block font-medium mb-1">Category</label>
-            <select
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              required
-              className="w-full p-3 rounded-lg border"
-            >
-              <option value="">Select category</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+              <select
+                name="category"
+                value={form.category}
+                onChange={handleChange}
+                required
+                className="w-full p-3 rounded-lg border"
+              >
+                <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select category</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
           </div>
         </div>
         <div className="border-t pt-6">
@@ -605,6 +596,10 @@ function CreateItemModal({ onClose, onCreate }) {
     onClose();
   };
 
+  // Sample options for units
+  const inventoryUnitOptions = ["lbs", "kg", "g", "oz", "units", "pcs", "bunch", "pack", "bottle", "can"];
+  const purchaseUnitOptions = ["case", "box", "bag", "carton", "bottle", "can", "pack", "tray", "roll", "dozen"];
+
   return (
     <Modal onClose={onClose} title="Create Item">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -640,18 +635,18 @@ function CreateItemModal({ onClose, onCreate }) {
           </div>
           <div>
             <label className="block font-medium mb-1">Category</label>
-            <select
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              required
-              className="w-full p-3 rounded-lg border"
-            >
-              <option value="">Select category</option>
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+              <select
+                name="category"
+                value={form.category}
+                onChange={handleChange}
+                required
+                className="w-full p-3 rounded-lg border"
+              >
+                <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select category</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
           </div>
         </div>
         <div className="border-t pt-6">
@@ -659,25 +654,33 @@ function CreateItemModal({ onClose, onCreate }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block font-medium mb-1">Inventory Unit</label>
-              <input
+              <select
                 name="inventoryUnit"
-                placeholder="e.g. lbs, units"
                 value={form.inventoryUnit}
                 onChange={handleChange}
                 required
                 className="w-full p-3 rounded-lg border"
-              />
+              >
+                <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select unit</option>
+                {inventoryUnitOptions.map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block font-medium mb-1">Purchase Unit</label>
-              <input
+              <select
                 name="purchaseUnit"
-                placeholder="e.g. case, box"
                 value={form.purchaseUnit}
                 onChange={handleChange}
                 required
                 className="w-full p-3 rounded-lg border"
-              />
+              >
+                <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select unit</option>
+                {purchaseUnitOptions.map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block font-medium mb-1">Purchase Par</label>
