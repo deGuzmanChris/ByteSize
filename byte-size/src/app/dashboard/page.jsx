@@ -7,6 +7,7 @@ import { auth } from "../../lib/firebase";
 import useAuth from "../../lib/useAuth";
 import { DarkModeProvider, useDarkMode } from "../../lib/DarkModeContext";
 import InventoryPage from "../inventory/page";
+import AreaItemListPage from "../area-item-list/page";
 import OrderPage from "../order/page";
 import ReportsPage from "../reports/page";
 import SettingsPage from "../settings/page";
@@ -43,6 +44,7 @@ function DashboardContent() {
   const { darkMode, setDarkMode } = useDarkMode();
 
   const [activeTab, setActiveTab] = useState("inventory");
+  const [selectedArea, setSelectedArea] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -81,6 +83,7 @@ function DashboardContent() {
   function handleTabClick(id) {
     setActiveTab(id);
     setSidebarOpen(false);
+    if (id !== "inventory") setSelectedArea(null);
   }
 
   if (loading || !user) return <div>Loading...</div>;
@@ -173,7 +176,9 @@ function DashboardContent() {
         {activeTab === "inventory" && (
           <section>
             <div className={`${cardBg} ${text} rounded-xl shadow-md p-6 max-w-3xl mx-auto transition-colors duration-200`}>
-              <InventoryPage />
+              {selectedArea
+                ? <AreaItemListPage areaName={selectedArea} onBack={() => setSelectedArea(null)} />
+                : <InventoryPage onAreaClick={setSelectedArea} />}
             </div>
           </section>
         )}

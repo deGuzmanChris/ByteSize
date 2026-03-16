@@ -3,9 +3,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { auth, provider } from "../../lib/firebase";
-import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithPopup, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { setAuthCookie } from "../../lib/useAuth";
-import { doc, getDoc } from "firebase/firestore";
+import { getUserByEmail } from "../../lib/users";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,7 +16,12 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
-
+      const employee = await getUserByEmail(result.user.email);
+      if (!employee) {
+        await signOut(auth);
+        alert("Your Google account is not registered as an employee. Please contact your manager.");
+        return;
+      }
       const token = await result.user.getIdToken();
       setAuthCookie(token);
       router.push("/dashboard");

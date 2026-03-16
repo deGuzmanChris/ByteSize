@@ -6,7 +6,7 @@ import { FaTrash } from "react-icons/fa";
 import { getAreas, createArea, deleteArea } from "../../lib/areas";
 import { useDarkMode } from "../../lib/DarkModeContext";
 
-export default function InventoryPage() {
+export default function InventoryPage({ onAreaClick }) {
   const { darkMode } = useDarkMode();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -88,7 +88,7 @@ export default function InventoryPage() {
             <li key={idx}>
               <div
                 className={`${cardBg} ${text} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 cursor-pointer ${cardHover} transition-colors duration-200`}
-                onClick={() => window.location.href = `/area-item-list?areaName=${encodeURIComponent(area)}`}
+                onClick={() => onAreaClick?.(area)}
                 title={`View items in ${area}`}
               >
                 <span className="flex-1 font-semibold text-base">{area}</span>
