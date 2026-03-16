@@ -5,26 +5,33 @@ import { getInventoryItems, createInventoryItem, deleteInventoryItem } from "../
 import { FaTrash } from "react-icons/fa";
 import { getAreas, createArea, deleteArea } from "../../lib/areas";
 import { useDarkMode } from "../../lib/DarkModeContext";
-import DarkToggle from "../components/DarkToggle";
-import Modal from "../components/Modal";
 import CreateAreaModal from "../components/modals/CreateAreaModal";
 import DeleteAreaModal from "../components/modals/DeleteAreaModal";
 import { getColorTokens } from "../components/colorTokens";
 
+/**
+ * InventoryPage component displays all inventory areas and allows creating or deleting areas.
+ */
 export default function InventoryPage() {
+  // Theme context
   const { darkMode } = useDarkMode();
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [areaToDelete, setAreaToDelete] = useState(null);
-  const [areas, setAreas] = useState([]);
-  const [areaDocs, setAreaDocs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [newAreaName, setNewAreaName] = useState("");
-  const [creatingArea, setCreatingArea] = useState(false);
 
-  // Use shared color tokens
+  // State variables
+  const [showCreateModal, setShowCreateModal] = useState(false); // Show create area modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // Show delete area modal
+  const [areaToDelete, setAreaToDelete] = useState(null); // Index of area to delete
+  const [areas, setAreas] = useState([]); // List of area names
+  const [areaDocs, setAreaDocs] = useState([]); // List of area documents (with id)
+  const [loading, setLoading] = useState(true); // Loading state
+  const [newAreaName, setNewAreaName] = useState(""); // New area name input
+  const [creatingArea, setCreatingArea] = useState(false); // Creating area state
+
+  // Use shared color tokens for theming
   const tokens = getColorTokens(darkMode);
 
+  /**
+   * Fetch all areas from the database and update state.
+   */
   useEffect(() => {
     async function fetchAreas() {
       setLoading(true);
@@ -36,6 +43,9 @@ export default function InventoryPage() {
     fetchAreas();
   }, []);
 
+  /**
+   * Handle creating a new area.
+   */
   const handleCreateArea = async (e) => {
     e.preventDefault();
     if (newAreaName.trim() === "") return;
@@ -44,27 +54,36 @@ export default function InventoryPage() {
     await createArea(newAreaName.trim());
     setNewAreaName("");
     setShowCreateModal(false);
+    // Refresh area list
     const areaList = await getAreas();
     setAreaDocs(areaList);
     setAreas(areaList.map(area => area.name));
     setCreatingArea(false);
   };
 
+  /**
+   * Handle deleting an area and all its items.
+   */
   const handleDeleteArea = async (areaName) => {
     setShowDeleteModal(false);
     setAreaToDelete(null);
+    // Find area doc by name
     const areaDoc = areaDocs.find(area => area.name === areaName);
     if (areaDoc) await deleteArea(areaDoc.id);
+    // Delete all items in this area
     const items = await getInventoryItems();
     const itemsToDelete = items.filter(item => item.area === areaName);
     for (const item of itemsToDelete) await deleteInventoryItem(item.id);
+    // Refresh area list
     const areaList = await getAreas();
     setAreaDocs(areaList);
     setAreas(areaList.map(area => area.name));
   };
 
+  // --- Render ---
   return (
     <section>
+      {/* Header with page title and create area button */}
       <div className="flex items-center justify-between mb-6">
         <h1 className={`text-2xl font-bold ${tokens.text}`}>Inventory</h1>
         <div className="flex gap-2 items-center">
@@ -76,6 +95,8 @@ export default function InventoryPage() {
           </button>
         </div>
       </div>
+
+      {/* Loading, empty, or area list state */}
       {loading ? (
         <div className={`mb-4 ${tokens.text}`}>Loading areas...</div>
       ) : areas.length === 0 ? (
@@ -108,6 +129,7 @@ export default function InventoryPage() {
         </ul>
       )}
 
+      {/* Create Area Modal */}
       {showCreateModal && (
         <CreateAreaModal
           onClose={() => setShowCreateModal(false)}
@@ -121,6 +143,7 @@ export default function InventoryPage() {
         />
       )}
 
+      {/* Delete Area Modal */}
       {showDeleteModal && (
         <DeleteAreaModal
           onClose={() => { setShowDeleteModal(false); setAreaToDelete(null); }}
@@ -134,4 +157,3 @@ export default function InventoryPage() {
     </section>
   );
 }
-
