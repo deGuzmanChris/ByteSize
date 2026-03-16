@@ -88,7 +88,7 @@ export default function InventoryPage() {
         <h1 className={`text-2xl font-bold ${tokens.text}`}>Inventory</h1>
         <div className="flex gap-2 items-center">
           <button
-            className="px-4 py-2 bg-[#8fa481] text-black rounded shadow hover:bg-[#7a926e] transition-colors"
+            className={`px-4 py-2 ${darkMode ? 'bg-[#8fa481] text-white hover:bg-[#7a926e]' : 'bg-[#8fa481] text-black hover:bg-[#7a926e]'} rounded shadow transition-colors`}
             onClick={() => setShowCreateModal(true)}
           >
             Create Area
@@ -101,7 +101,7 @@ export default function InventoryPage() {
         <div className={`mb-4 ${tokens.text}`}>Loading areas...</div>
       ) : areas.length === 0 ? (
         <div className="mb-4">
-          <div className={`${tokens.cardBg} ${tokens.text} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 text-base transition-colors duration-200`}>
+          <div className={`${tokens.secondaryBg} ${tokens.text} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 text-base transition-colors duration-200`}>
             No areas yet.
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function InventoryPage() {
           {areas.map((area, idx) => (
             <li key={idx}>
               <div
-                className={`${tokens.cardBg} ${tokens.text} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 cursor-pointer ${tokens.cardHover} transition-colors duration-200`}
+                className={`${tokens.secondaryBg} ${tokens.text} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 cursor-pointer ${tokens.cardHover} transition-colors duration-200`}
                 onClick={() => window.location.href = `/area-item-list?areaName=${encodeURIComponent(area)}`}
                 title={`View items in ${area}`}
               >

@@ -16,8 +16,8 @@ export default function OrderPage() {
   // Use shared color tokens
   const tokens = getColorTokens(darkMode);
   const text = tokens.text;
-  const cardBg = tokens.cardBg;
-  const borderCls = darkMode ? "border-[#555]" : "border-b";
+  const cardBg = tokens.secondaryBg;
+  const borderCls = darkMode ? "border-b border-white" : "border-b";
   const inputCls = darkMode
     ? "w-20 text-right rounded border px-2 py-1 bg-[#4a4a4a] text-[#f0f0f0] border-[#555]"
     : "w-20 text-right rounded border px-2 py-1 bg-white";

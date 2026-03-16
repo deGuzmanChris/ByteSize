@@ -2,26 +2,27 @@
 export function getColorTokens(darkMode) {
   return {
     text: darkMode ? "text-[#f0f0f0]" : "text-black",
-    cardBg: darkMode ? "bg-[#3a3a3a]" : "bg-[#F6F0D7]",
-    cardHover: darkMode ? "hover:bg-[#4a4a4a]" : "hover:bg-[#e5dab6]",
+    cardBg: darkMode ? "bg-[#2d2d2d]" : "bg-white", // main card background
+    secondaryBg: darkMode ? "bg-[#232323]" : "bg-[#F6F0D7]", // secondary elements
+    cardHover: darkMode ? "hover:bg-[#383838]" : "hover:bg-[#e5dab6]",
     inputCls: darkMode
-      ? "border rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-[#8fa481] bg-[#4a4a4a] text-[#f0f0f0] border-[#555]"
+      ? "border rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-[#888] bg-[#383838] text-[#f0f0f0] border-[#444]"
       : "border rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-[#8fa481]",
     cancelBtn: darkMode
-      ? "px-4 py-2 bg-[#555] text-[#f0f0f0] rounded hover:bg-[#666] transition-colors"
+      ? "px-4 py-2 bg-[#444] text-[#f0f0f0] rounded hover:bg-[#555] transition-colors"
       : "px-4 py-2 bg-[#d1d5db] text-black rounded hover:bg-gray-400 transition-colors",
-    sectionBg: darkMode ? "bg-[#2d2d2d]" : "bg-[#F6F0D7]",
+    sectionBg: darkMode ? "bg-[#232323]" : "bg-[#F6F0D7]",
     selectCls: darkMode
-      ? "px-3 py-2 border rounded bg-[#3a3a3a] text-[#f0f0f0] border-[#555]"
+      ? "px-3 py-2 border rounded bg-[#2d2d2d] text-[#f0f0f0] border-[#444]"
       : "px-3 py-2 border rounded",
     userCardCls: darkMode
-      ? "flex items-center justify-between border border-[#444] rounded p-3 bg-[#3a3a3a]"
+      ? "flex items-center justify-between border border-[#444] rounded p-3 bg-[#2d2d2d]"
       : "flex items-center justify-between border rounded p-3",
     roleBadgeCls: darkMode
-      ? "text-xs px-2 py-0.5 rounded-full bg-[#4a5c38] text-[#c5d4b0] capitalize"
+      ? "text-xs px-2 py-0.5 rounded-full bg-[#383838] text-[#b0b0b0] capitalize"
       : "text-xs px-2 py-0.5 rounded-full bg-[#F6F0D7] text-[#5a6640] capitalize",
     editBtnCls: darkMode
-      ? "px-3 py-1 text-sm bg-[#4a5c38] text-[#c5d4b0] rounded hover:bg-[#3a4a2c] disabled:opacity-50"
+      ? "px-3 py-1 text-sm bg-[#383838] text-[#b0b0b0] rounded hover:bg-[#232323] disabled:opacity-50"
       : "px-3 py-1 text-sm bg-white text-[#5a6640] rounded hover:bg-[#e8e2c5] disabled:opacity-50",
     sidebarBg: darkMode ? "bg-[#4a5c38]" : "bg-[#89986D]",
     sidebarActiveBg: darkMode ? "bg-[#3a4a2c]" : "bg-[#9CAB84]",

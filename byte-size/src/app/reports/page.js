@@ -39,15 +39,13 @@ function ReportsPage() {
   const tokens = getColorTokens(darkMode);
   const text = tokens.text;
   const muted = darkMode ? "text-gray-400" : "text-gray-500";
-  const cardBg = darkMode ? "bg-[#2d2d2d]" : "bg-white";
-  const innerCard = darkMode ? "bg-[#3a3a3a]" : "bg-[#F6F0D7]";
+  const cardBg = tokens.secondaryBg;
+  const innerCard = tokens.sectionBg;
   const borderCls = darkMode ? "border-[#444]" : "border-gray-200";
-  const tabActive = darkMode ? "bg-[#4a5c38] text-[#f0f0f0]" : "bg-[#89986D] text-white";
-  const tabInactive = darkMode
-    ? "bg-[#3a3a3a] text-gray-400 hover:bg-[#444]"
-    : "bg-[#F6F0D7] text-gray-600 hover:bg-[#e5dab6]";
+  const tabActive = `${tokens.sidebarBg} ${tokens.text}`;
+  const tabInactive = `${tokens.sectionBg} ${muted} hover:${tokens.cardHover}`;
   const barBg = darkMode ? "bg-[#4a4a4a]" : "bg-[#e5dab6]";
-  const barFill = "bg-[#89986D]";
+  const barFill = tokens.sidebarBg;
 
   useEffect(() => {
     async function load() {

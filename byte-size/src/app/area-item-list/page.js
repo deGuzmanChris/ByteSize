@@ -54,8 +54,8 @@ function AreaItemListContent() {
   const logoutBg = colorTokens.logoutBg;
   const text = darkMode ? "text-white" : colorTokens.text;
   const bg = colorTokens.bg;
-  const mainCardBg = darkMode ? "bg-[#393939]" : "bg-white";
-  const cardBg = darkMode ? "bg-[#232a23]" : colorTokens.cardBg;
+  const mainCardBg = colorTokens.cardBg;
+  const cardBg = colorTokens.secondaryBg;
   const cardText = darkMode ? "text-white" : text;
 
   // Sidebar navigation tabs
@@ -234,7 +234,7 @@ function AreaItemListContent() {
         <section>
           <div className="flex justify-center w-full">
             <div className={`${mainCardBg} rounded-xl shadow-md p-6 w-full max-w-md mx-auto my-8 md:max-w-3xl transition-colors duration-200`} style={{overflow: 'hidden'}}>
-              <div className={`${darkMode ? 'bg-[#393939]' : ''} rounded-xl w-full h-full p-0 m-0`}>
+              <div className={`rounded-xl w-full h-full p-0 m-0`}>
                 {/* Header with area name and create item button */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
@@ -248,7 +248,7 @@ function AreaItemListContent() {
                     <span className={`text-2xl font-bold ${text}`}>{areaName}</span>
                   </div>
                   <button
-                    className={`px-4 py-2 ${sidebarActiveBg} ${text} rounded shadow hover:${sidebarHover} transition-colors`}
+                    className={`px-4 py-2 ${darkMode ? 'bg-[#8fa481] text-white hover:bg-[#7a926e]' : 'bg-[#8fa481] text-black hover:bg-[#7a926e]'} rounded shadow transition-colors`}
                     onClick={() => setShowCreateModal(true)}
                   >
                     Create Item
@@ -271,7 +271,7 @@ function AreaItemListContent() {
                   <div className={`mb-4 ${text}`}>Loading items...</div>
                 ) : filteredItems.length === 0 ? (
                   <div className="mb-4">
-                    <div className={`${darkMode ? 'bg-[#393939]' : cardBg} ${text} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 text-base transition-colors duration-200`}>
+                    <div className={`${cardBg} ${text} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 text-base transition-colors duration-200`}>
                       No items yet.
                     </div>
                   </div>
@@ -279,14 +279,14 @@ function AreaItemListContent() {
                   <ul className="space-y-4">
                     {filteredItems.map((item, idx) => (
                       <li key={idx}>
-                        <div className={`${darkMode ? 'bg-[#414141] text-white' : cardBg + ' ' + cardText} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 transition-colors duration-200`}>
+                        <div className={`${cardBg} ${cardText} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 transition-colors duration-200`}>
                           <span className="flex-1 font-semibold text-base">{item.name}</span>
                           {/* Quantity input and save button */}
                           <div className="flex items-center gap-1 ml-1" style={{ minWidth: '100px' }}>
                             <input
                               type="number"
                               maxLength={2}
-                              className={`${darkMode ? 'bg-[#393939] text-white border-[#555]' : cardBg + ' ' + cardText} w-12 h-8 p-1 rounded border border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center align-middle`}
+                              className={`${mainCardBg} ${darkMode ? 'text-white' : 'text-black'} border-[#555] w-12 h-8 p-1 rounded border focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center align-middle placeholder:opacity-60 placeholder:font-semibold`} 
                               style={{ MozAppearance: 'textfield', marginRight: '2px' }}
                               placeholder="Qty"
                               value={(() => {
@@ -299,7 +299,7 @@ function AreaItemListContent() {
                               onKeyDown={e => { if (e.key === 'Enter') handleAreaCountEnter(idx); }}
                             />
                             {item.inventoryUnit && (
-                              <span className={`text-xs font-bold px-1 rounded ${darkMode ? 'bg-[#414141] text-white' : cardBg + ' ' + cardText} whitespace-nowrap min-w-9 text-left align-middle`}>
+                              <span className={`text-xs font-bold px-1 rounded ${darkMode ? cardBg + ' text-white' : cardBg + ' text-black'} whitespace-nowrap min-w-9 text-left align-middle`}>
                                 {item.inventoryUnit}
                               </span>
                             )}
@@ -314,7 +314,7 @@ function AreaItemListContent() {
                           </button>
                           {/* View item info button */}
                           <button
-                            className={`ml-2 p-2 ${darkMode ? 'bg-[#393939]' : cardBg} border border-[#b7c9a6] text-[#355b2c] rounded-full shadow hover:${darkMode ? 'bg-[#393939]' : cardBg} transition-colors flex items-center justify-center`}
+                            className={`ml-2 p-2 ${mainCardBg} border border-[#b7c9a6] text-[#355b2c] rounded-full shadow hover:${mainCardBg} transition-colors flex items-center justify-center`}
                             onClick={() => setViewItem(item)}
                             title="View Info"
                             aria-label="View Info"
@@ -369,6 +369,7 @@ function AreaItemListContent() {
                 <CreateItemModal
                   onClose={() => setShowCreateModal(false)}
                   onCreate={handleCreateItem}
+                  categories={categories}
                 />
               )}
 

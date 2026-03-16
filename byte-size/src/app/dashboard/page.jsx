@@ -7,6 +7,8 @@ import { auth } from "../../lib/firebase";
 import useAuth from "../../lib/useAuth";
 import { getUserById, setMustChangePassword } from "../../lib/users";
 import { useDarkMode } from "../../lib/DarkModeContext";
+import { getColorTokens } from "../components/colorTokens";
+import DarkToggle from "../components/DarkToggle.jsx";
 import InventoryPage from "../inventory/page";
 import OrderPage from "../order/page";
 import ReportsPage from "../reports/page";
@@ -14,21 +16,7 @@ import SettingsPage from "../settings/page";
 
 const SIDEBAR_BREAKPOINT = 768;
 
-function SunIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
-    </svg>
-  );
-}
-
-function MoonIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
-    </svg>
-  );
-}
+// ...existing code...
 
 // Outer component: just renders the content, context is now global
 export default function Dashboard() {
@@ -120,26 +108,16 @@ function DashboardContent() {
 
   if (loading || !user) return <div>Loading...</div>;
 
-  // Dark mode color tokens
-  const bg = darkMode ? "bg-[#1e1e1e]" : "bg-[#F6F0D7]";
-  const cardBg = darkMode ? "bg-[#2d2d2d]" : "bg-white";
-  const sidebarBg = darkMode ? "bg-[#4a5c38]" : "bg-[#89986D]";
-  const sidebarActiveBg = darkMode ? "bg-[#3a4a2c]" : "bg-[#9CAB84]";
-  const sidebarHover = darkMode ? "hover:bg-[#3a4a2c]/70" : "hover:bg-[#9CAB84]/70";
-  const sidebarBorder = darkMode ? "border-[#3a4a2c]" : "border-[#9CAB84]";
-  const logoutBg = darkMode ? "bg-[#3a4a2c] hover:bg-[#2e3b22]" : "bg-[#7C8A5F] hover:bg-[#6E7B54]";
-  const text = darkMode ? "text-[#f0f0f0]" : "text-black";
-
-  const DarkToggle = ({ className = "" }) => (
-    <button
-      onClick={() => setDarkMode((v) => !v)}
-      aria-label="Toggle dark mode"
-      className={`p-2 rounded transition-colors ${sidebarHover} ${className}`}
-      title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-    >
-      {darkMode ? <SunIcon /> : <MoonIcon />}
-    </button>
-  );
+  // Use shared color tokens
+  const tokens = getColorTokens(darkMode);
+  const bg = tokens.bg;
+  const cardBg = tokens.cardBg;
+  const sidebarBg = tokens.sidebarBg;
+  const sidebarActiveBg = tokens.sidebarActiveBg;
+  const sidebarHover = tokens.sidebarHover;
+  const sidebarBorder = tokens.sidebarBorder;
+  const logoutBg = tokens.logoutBg;
+  const text = tokens.text;
 
   const sidebarContent = (
     <>
@@ -159,7 +137,7 @@ function DashboardContent() {
       <div className="flex-1" />
       <div className={`flex items-center justify-between px-5 py-3 border-t ${sidebarBorder}`}>
         <span className="text-sm opacity-80">{darkMode ? "Dark" : "Light"} mode</span>
-        <DarkToggle />
+        <DarkToggle className={sidebarHover} />
       </div>
       <button onClick={handleLogout} className={`px-5 py-4 text-left transition-colors ${logoutBg}`}>
         Log out
@@ -210,7 +188,7 @@ function DashboardContent() {
           )}
         </button>
         <span className="ml-4 text-xl font-semibold flex-1">ByteSize</span>
-        <DarkToggle />
+        <DarkToggle className={sidebarHover} />
       </header>
 
       {/* Backdrop */}
