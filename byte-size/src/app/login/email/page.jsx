@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../lib/firebase";
-import useAuth from "../../lib/useAuth";
+import { auth } from "../../../lib/firebase";
+import useAuth from "../../../lib/useAuth";
 
 export default function EmailLoginPage() {
   const router = useRouter();

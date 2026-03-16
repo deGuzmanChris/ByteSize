@@ -4,9 +4,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDarkMode } from "../../lib/DarkModeContext";
+import { getColorTokens } from "../components/colorTokens";
 
 export default function CreateItemPage() {
   const router = useRouter();
+  const { darkMode } = useDarkMode();
+  const tokens = getColorTokens(darkMode);
 
   const [form, setForm] = useState({
     name: "",
@@ -26,7 +30,6 @@ export default function CreateItemPage() {
     "Frozen",
     "Sauces",
   ];
-//for cristian
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -45,21 +48,21 @@ export default function CreateItemPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F0D7] p-8 text-black">
-      <div className="max-w-3xl mx-auto bg-[#F6F0D7] rounded-xl shadow-md p-8 text-black">
-        <h1 className="text-2xl font-bold mb-6 text-black">Create Inventory Item</h1>
+    <div className={`min-h-screen ${tokens.bg} p-8 ${tokens.text}`}>
+      <div className={`max-w-3xl mx-auto ${tokens.cardBg} rounded-xl shadow-md p-8 ${tokens.text}`}>
+        <h1 className={`text-2xl font-bold mb-6 ${tokens.text}`}>Create Inventory Item</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6 text-black">
+        <form onSubmit={handleSubmit} className={`space-y-6 ${tokens.text}`}>
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block font-medium mb-1 text-black">Item Name</label>
+              <label className={`block font-medium mb-1 ${tokens.text}`}>Item Name</label>
               <input
                 name="name"
                 value={form.name}
                 onChange={handleChange}
                 required
-                className="w-full p-3 rounded-lg border border-[#9CAB84] text-black bg-white"
+                className={`w-full p-3 rounded-lg border ${tokens.sidebarBorder} ${tokens.text} ${darkMode ? "bg-[#393939]" : "bg-white"}`}
               />
             </div>
 

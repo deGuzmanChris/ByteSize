@@ -4,10 +4,14 @@ import { useRouter } from "next/navigation";
 import { auth, provider, db } from "../../lib/firebase";
 import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { useDarkMode } from "../../lib/DarkModeContext";
+import { getColorTokens } from "../components/colorTokens";
 
 export default function LoginPage() {
   const router = useRouter();
-  
+  const { darkMode } = useDarkMode();
+  const tokens = getColorTokens(darkMode);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -45,10 +49,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-sm text-center">
+    <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-[#232a23]' : 'bg-gray-100'}`}>
+      <div className={`${tokens.cardBg} p-8 rounded-xl shadow-md w-full max-w-sm text-center ${tokens.text}`}>
         <h1 className="text-2xl font-bold mb-2">Welcome</h1>
-        
         {/* Email/Password Form */}
         <form onSubmit={handleEmailSignIn} className="mb-4">
           <div className="mb-4">
@@ -58,8 +61,8 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="your@email.com"
+              className={`w-full p-3 rounded-lg border ${tokens.sidebarBorder} ${tokens.text} ${darkMode ? 'bg-[#393939]' : 'bg-white'}`}
+              placeholder="yourname@example.com"
             />
           </div>
           <div className="mb-4">
@@ -69,8 +72,8 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••••"
+              className={`w-full px-3 py-2 border ${tokens.sidebarBorder} rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${tokens.text} ${darkMode ? 'bg-[#393939]' : 'bg-white'}`}
+              placeholder="••••••••••"
             />
           </div>
           <button
@@ -87,19 +90,18 @@ export default function LoginPage() {
             <div className="w-full border-t border-gray-300"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or</span>
+            <span className={`${darkMode ? 'bg-[#232a23]' : 'bg-white'} text-gray-500 px-2`}>Or</span>
           </div>
         </div>
-        
+
         <p className="text-gray-500 mb-4 text-sm">Sign in with Google</p>
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-2">
           <button
             onClick={handleGoogleSignIn}
-            className="w-full bg-white border border-gray-300 text-gray-700 font-semibold py-2 rounded hover:bg-gray-50"
+            className={`w-full ${darkMode ? 'bg-[#393939] border-[#555] text-white' : 'bg-white border border-gray-300 text-gray-700'} font-semibold py-2 rounded hover:bg-gray-50`}
           >
             Continue with Google
           </button>
-
           <button
             onClick={() => router.push("/login/email")}
             className="w-full bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700"

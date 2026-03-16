@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createUser, getUsers, updateUserDoc, deleteUserDoc } from "../../lib/users";
 import { useDarkMode } from "../../lib/DarkModeContext";
+import { getColorTokens } from "../components/colorTokens";
 
 export default function SettingsPage() {
   const { darkMode } = useDarkMode();
@@ -12,27 +13,8 @@ export default function SettingsPage() {
   const [notice, setNotice] = useState({ text: "", type: "success" });
   const [loading, setLoading] = useState(false);
 
-  // Dark mode color tokens
-  const text = darkMode ? "text-[#f0f0f0]" : "text-black";
-  const sectionBg = darkMode ? "bg-[#2d2d2d]" : "bg-[#F6F0D7]";
-  const inputCls = darkMode
-    ? "flex-1 px-3 py-2 border rounded bg-[#3a3a3a] text-[#f0f0f0] border-[#555]"
-    : "flex-1 px-3 py-2 border rounded";
-  const selectCls = darkMode
-    ? "px-3 py-2 border rounded bg-[#3a3a3a] text-[#f0f0f0] border-[#555]"
-    : "px-3 py-2 border rounded";
-  const cancelBtnCls = darkMode
-    ? "px-3 py-2 border border-[#555] rounded text-sm text-[#f0f0f0]"
-    : "px-3 py-2 border rounded text-sm";
-  const userCardCls = darkMode
-    ? "flex items-center justify-between border border-[#444] rounded p-3 bg-[#3a3a3a]"
-    : "flex items-center justify-between border rounded p-3";
-  const roleBadgeCls = darkMode
-    ? "text-xs px-2 py-0.5 rounded-full bg-[#4a5c38] text-[#c5d4b0] capitalize"
-    : "text-xs px-2 py-0.5 rounded-full bg-[#F6F0D7] text-[#5a6640] capitalize";
-  const editBtnCls = darkMode
-    ? "px-3 py-1 text-sm bg-[#4a5c38] text-[#c5d4b0] rounded hover:bg-[#3a4a2c] disabled:opacity-50"
-    : "px-3 py-1 text-sm bg-white text-[#5a6640] rounded hover:bg-[#e8e2c5] disabled:opacity-50";
+  // Use shared color tokens
+  const tokens = getColorTokens(darkMode);
 
   useEffect(() => {
     fetchUsers();
@@ -131,8 +113,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className={`${text} transition-colors duration-200`}>
-      <div className={`${sectionBg} rounded-xl shadow p-6 mb-6 transition-colors duration-200`}>
+    <div className={`${tokens.text} transition-colors duration-200`}>
+      <div className={`${tokens.sectionBg} rounded-xl shadow p-6 mb-6 transition-colors duration-200`}>
         <h2 className="text-lg font-semibold mb-1">
           {editingId ? "Edit User" : "Create New User"}
         </h2>
@@ -149,7 +131,7 @@ export default function SettingsPage() {
               value={form.name}
               onChange={handleChange}
               placeholder="Full name"
-              className={inputCls}
+              className={tokens.inputCls}
               disabled={loading}
             />
             <input
@@ -158,14 +140,14 @@ export default function SettingsPage() {
               onChange={handleChange}
               placeholder="Email"
               type="email"
-              className={inputCls}
+              className={tokens.inputCls}
               disabled={loading || !!editingId}
             />
             <select
               name="role"
               value={form.role}
               onChange={handleChange}
-              className={selectCls}
+              className={tokens.selectCls}
               disabled={loading}
             >
               <option value="staff">Staff</option>
@@ -182,7 +164,7 @@ export default function SettingsPage() {
               {loading ? "Saving..." : editingId ? "Save changes" : "Create user"}
             </button>
             {editingId && (
-              <button type="button" onClick={resetForm} disabled={loading} className={cancelBtnCls}>
+              <button type="button" onClick={resetForm} disabled={loading} className={tokens.cancelBtn}>
                 Cancel
               </button>
             )}
@@ -202,7 +184,7 @@ export default function SettingsPage() {
         </form>
       </div>
 
-      <div className={`${sectionBg} rounded-xl shadow p-6 transition-colors duration-200`}>
+      <div className={`${tokens.sectionBg} rounded-xl shadow p-6 transition-colors duration-200`}>
         <h2 className="text-lg font-semibold mb-4">Users</h2>
 
         {users.length === 0 ? (
@@ -210,32 +192,31 @@ export default function SettingsPage() {
         ) : (
           <div className="space-y-3">
             {users.map((user) => (
-              <div key={user.id} className={userCardCls}>
+              <div key={user.id} className={tokens.userCardCls}>
                 <div>
                   <div className="font-medium">{user.name}</div>
                   <div className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{user.email}</div>
                   <div className="flex gap-2 mt-1">
-                    <span className={roleBadgeCls}>{user.role}</span>
+                    <span className={tokens.roleBadgeCls}>{user.role}</span>
                     {user.mustChangePassword && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
-                        Awaiting password setup
-                      </span>
-                    )}
-                    {user.authProvider === "google" && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">
-                        Google
+                        Must set password
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => handleEditInit(user)} disabled={loading} className={editBtnCls}>
+                  <button
+                    className={tokens.editBtnCls}
+                    onClick={() => handleEditInit(user)}
+                    disabled={loading}
+                  >
                     Edit
                   </button>
                   <button
+                    className="px-3 py-1 text-sm bg-[#d9534f] text-white rounded hover:bg-[#c9302c] disabled:opacity-50"
                     onClick={() => handleDelete(user)}
                     disabled={loading}
-                    className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
                   >
                     Delete
                   </button>
