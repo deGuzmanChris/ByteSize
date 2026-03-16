@@ -22,7 +22,7 @@ const categories = [
   "Sauces",
 ];
 
-import { DarkModeProvider, useDarkMode } from "../../lib/DarkModeContext";
+import { useDarkMode } from "../../lib/DarkModeContext";
 
 function AreaItemListContent() {
   const { darkMode, setDarkMode } = useDarkMode();
@@ -364,11 +364,6 @@ function AreaItemListContent() {
   );
 }
 
-export default function AreaItemListPage() {
-  return (
-    <DarkModeProvider>
-      <AreaItemListContent />
-    </DarkModeProvider>
-  );
-}
+export default AreaItemListContent;
+
 

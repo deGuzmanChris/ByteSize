@@ -6,7 +6,7 @@ import { signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvide
 import { auth } from "../../lib/firebase";
 import useAuth from "../../lib/useAuth";
 import { getUserById, setMustChangePassword } from "../../lib/users";
-import { DarkModeProvider, useDarkMode } from "../../lib/DarkModeContext";
+import { useDarkMode } from "../../lib/DarkModeContext";
 import InventoryPage from "../inventory/page";
 import OrderPage from "../order/page";
 import ReportsPage from "../reports/page";
@@ -30,13 +30,9 @@ function MoonIcon() {
   );
 }
 
-// Outer component: provides the dark mode context to all children
+// Outer component: just renders the content, context is now global
 export default function Dashboard() {
-  return (
-    <DarkModeProvider>
-      <DashboardContent />
-    </DarkModeProvider>
-  );
+  return <DashboardContent />;
 }
 
 // Inner component: consumes dark mode context + all page logic
