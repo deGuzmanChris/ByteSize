@@ -1,5 +1,10 @@
-
 "use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { getOrderHistory } from "../../lib/orderHistory";
+import { useDarkMode } from "../../lib/DarkModeContext";
+import { getColorTokens } from "../components/colorTokens";
+
 // SummaryCard component for report summary display
 function SummaryCard({ cardBg, label, value, sub }) {
   return (
@@ -10,11 +15,6 @@ function SummaryCard({ cardBg, label, value, sub }) {
     </div>
   );
 }
-
-import { useState, useEffect, useMemo } from "react";
-import { getOrderHistory } from "../../lib/orderHistory";
-import { useDarkMode } from "../../lib/DarkModeContext";
-import { getColorTokens } from "../components/colorTokens";
 
 const TIMELINES = [
   { label: "Week", days: 7 },

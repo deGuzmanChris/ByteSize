@@ -6,6 +6,7 @@ import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
+
 export default function LoginPage() {
   const router = useRouter();
   const { darkMode } = useDarkMode();
@@ -61,6 +62,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={`w-full p-3 rounded-lg border ${tokens.sidebarBorder} ${tokens.text} ${darkMode ? 'bg-[#393939]' : 'bg-white'}`}
+              placeholder="yourname@example.com"
             />
           </div>
           <div className="mb-4">
@@ -71,7 +73,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={`w-full px-3 py-2 border ${tokens.sidebarBorder} rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${tokens.text} ${darkMode ? 'bg-[#393939]' : 'bg-white'}`}
-              placeholder="••••••••"
+              placeholder="••••••••••"
             />
           </div>
           <button

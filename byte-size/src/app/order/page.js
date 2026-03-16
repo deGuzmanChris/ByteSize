@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getInventoryItems } from "../../lib/inventory";
 import { logOrder } from "../../lib/orderHistory";
-
-
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
 
@@ -23,7 +21,6 @@ export default function OrderPage() {
     : "w-20 text-right rounded border px-2 py-1 bg-white";
   const mutedText = darkMode ? "text-gray-400" : "text-gray-500";
 
-  // ...existing code...
   useEffect(() => {
     async function load() {
       setLoading(true);

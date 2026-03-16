@@ -16,8 +16,6 @@ import SettingsPage from "../settings/page";
 
 const SIDEBAR_BREAKPOINT = 768;
 
-// ...existing code...
-
 // Outer component: just renders the content, context is now global
 export default function Dashboard() {
   return <DashboardContent />;

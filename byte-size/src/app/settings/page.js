@@ -2,10 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { createUser, getUsers, updateUserDoc, deleteUserDoc } from "../../lib/users";
-
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
-
 
 export default function SettingsPage() {
   const { darkMode } = useDarkMode();
