@@ -20,6 +20,7 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 
+// can import firebaseConfig from firebase.js
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
