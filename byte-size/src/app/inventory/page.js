@@ -12,7 +12,7 @@ import { getColorTokens } from "../components/colorTokens";
 /**
  * InventoryPage component displays all inventory areas and allows creating or deleting areas.
  */
-export default function InventoryPage() {
+export default function InventoryPage({ onAreaSelect }) {
   // Theme context
   const { darkMode } = useDarkMode();
 
@@ -111,7 +111,7 @@ export default function InventoryPage() {
             <li key={idx}>
               <div
                 className={`${tokens.secondaryBg} ${tokens.text} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 cursor-pointer ${tokens.cardHover} transition-colors duration-200`}
-                onClick={() => window.location.href = `/area-item-list?areaName=${encodeURIComponent(area)}`}
+                onClick={() => onAreaSelect ? onAreaSelect(area) : (window.location.href = `/area-item-list?areaName=${encodeURIComponent(area)}`)}
                 title={`View items in ${area}`}
               >
                 <span className="flex-1 font-semibold text-base">{area}</span>
