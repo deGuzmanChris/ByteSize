@@ -124,6 +124,12 @@ export default function LoginPage() {
           >
             Continue with Google
           </button>
+
+          /* 
+          This button is currently redundant and should be removed, since the default login prompt 
+          uses email. We can add a button later for other login methods like Apple, but for now we
+          don't need it
+          */
           <button
             onClick={() => router.push("/login/email")}
             className="w-full bg-[#89986D] text-[#F6F0D7] font-semibold py-2 rounded hover:bg-[#7a8960] transition-colors"
