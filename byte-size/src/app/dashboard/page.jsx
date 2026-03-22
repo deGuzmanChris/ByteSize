@@ -9,7 +9,9 @@ import { getUserById, setMustChangePassword } from "../../lib/users";
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
 import DarkToggle from "../components/DarkToggle.jsx";
+import { CookieIcon, CookieBackground } from "../components/CookieBackground";
 import InventoryPage from "../inventory/page";
+import { AreaItemList } from "../area-item-list/page";
 import OrderPage from "../order/page";
 import ReportsPage from "../reports/page";
 import SettingsPage from "../settings/page";
@@ -26,6 +28,7 @@ function DashboardContent() {
   const { darkMode, setDarkMode } = useDarkMode();
 
   const [activeTab, setActiveTab] = useState("inventory");
+  const [activeArea, setActiveArea] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mustChangePassword, setMustChangePasswordState] = useState(false);
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
@@ -72,6 +75,7 @@ function DashboardContent() {
 
   function handleTabClick(id) {
     setActiveTab(id);
+    setActiveArea(null);
     setSidebarOpen(false);
   }
 
@@ -106,7 +110,6 @@ function DashboardContent() {
 
   if (loading || !user) return <div>Loading...</div>;
 
-  // Use shared color tokens
   const tokens = getColorTokens(darkMode);
   const bg = tokens.bg;
   const cardBg = tokens.cardBg;
@@ -119,7 +122,9 @@ function DashboardContent() {
 
   const sidebarContent = (
     <>
-      <h2 className={`text-center text-xl font-semibold py-5 border-b ${sidebarBorder}`}>
+      {/* Brand with cookie icon */}
+      <h2 className={`flex items-center justify-center gap-2 text-xl font-semibold py-5 border-b ${sidebarBorder}`}>
+        <CookieIcon size={22} />
         ByteSize
       </h2>
       {tabs.map((tab) => (
@@ -144,7 +149,10 @@ function DashboardContent() {
   );
 
   return (
-    <div className={`flex flex-col md:flex-row h-screen ${bg} font-sans min-w-90 transition-colors duration-200`}>
+    <div className={`relative flex flex-col md:flex-row h-screen ${bg} font-sans min-w-90 transition-colors duration-200`}>
+      {/* Background pattern — sits behind everything */}
+      <CookieBackground darkMode={darkMode} id="dashboard" />
+
       {/* Change-password overlay */}
       {mustChangePassword && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -172,7 +180,7 @@ function DashboardContent() {
       )}
 
       {/* Mobile top bar */}
-      <header className={`md:hidden flex items-center ${sidebarBg} text-[#F6F0D7] px-4 h-14 shrink-0 transition-colors duration-200`}>
+      <header className={`relative z-10 md:hidden flex items-center ${sidebarBg} text-[#F6F0D7] px-4 h-14 shrink-0 transition-colors duration-200`}>
         <button onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle menu"
           className={`p-2 rounded ${sidebarHover} transition-colors`}>
           {sidebarOpen ? (
@@ -185,7 +193,10 @@ function DashboardContent() {
             </svg>
           )}
         </button>
-        <span className="ml-4 text-xl font-semibold flex-1">ByteSize</span>
+        <span className="ml-4 text-xl font-semibold flex-1 flex items-center gap-2">
+          <CookieIcon size={20} />
+          ByteSize
+        </span>
         <DarkToggle className={sidebarHover} />
       </header>
 
@@ -206,11 +217,15 @@ function DashboardContent() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="relative z-10 flex-1 p-8 overflow-y-auto">
         {activeTab === "inventory" && (
           <section>
             <div className={`${cardBg} ${text} rounded-xl shadow-md p-6 max-w-3xl mx-auto transition-colors duration-200`}>
-              <InventoryPage />
+              {activeArea ? (
+                <AreaItemList areaName={activeArea} onBack={() => setActiveArea(null)} />
+              ) : (
+                <InventoryPage onAreaSelect={setActiveArea} />
+              )}
             </div>
           </section>
         )}
