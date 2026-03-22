@@ -1,5 +1,15 @@
 "use client";
 
+/*
+To-Do:
+
+- Update variables to be consistent with the variable names used in area-item-list
+- Set character limits for items
+- Create order form 
+- Create UI element to display items to be ordered separately from the rest of the inventory (Can be a separate box, a cart, or just highlights
+- Sort items from lowest to highest count
+*/
+
 import { useEffect, useMemo, useState } from "react";
 import { getInventoryItems } from "../../lib/inventory";
 import { logOrder } from "../../lib/orderHistory";
