@@ -7,6 +7,8 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
+  query,
+  where,
 } from "firebase/firestore";
 
 const USERS_COLLECTION = "users";
@@ -60,6 +62,14 @@ export async function getUserById(uid) {
   const ref = doc(db, USERS_COLLECTION, uid);
   const snapshot = await getDoc(ref);
   return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+}
+
+export async function getUserByEmail(email) {
+  const q = query(collection(db, USERS_COLLECTION), where("email", "==", email));
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  const d = snapshot.docs[0];
+  return { id: d.id, ...d.data() };
 }
 
 export async function createUserDoc(uid, { name, email, role, authProvider = "email" }) {

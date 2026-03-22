@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import { auth } from "../../lib/firebase";
-import useAuth from "../../lib/useAuth";
-import { getUserById, setMustChangePassword } from "../../lib/users";
+import useAuth, { clearAuthCookie } from "../../lib/useAuth";
+import { getUserById } from "../../lib/users";
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
-import DarkToggle from "../components/DarkToggle.jsx";
+import DarkToggle from "../components/DarkToggle";
 import InventoryPage from "../inventory/page";
 import OrderPage from "../order/page";
 import ReportsPage from "../reports/page";
@@ -16,21 +16,16 @@ import SettingsPage from "../settings/page";
 
 const SIDEBAR_BREAKPOINT = 768;
 
-// Outer component: just renders the content, context is now global
 export default function Dashboard() {
   return <DashboardContent />;
 }
 
-// Inner component: consumes dark mode context + all page logic
 function DashboardContent() {
-  const { darkMode, setDarkMode } = useDarkMode();
+  const { darkMode } = useDarkMode();
 
   const [activeTab, setActiveTab] = useState("inventory");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [mustChangePassword, setMustChangePasswordState] = useState(false);
-  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
-  const [pwError, setPwError] = useState("");
-  const [pwLoading, setPwLoading] = useState(false);
+  const [currentRole, setCurrentRole] = useState(null);
   const router = useRouter();
   const { user, loading } = useAuth();
 
@@ -49,20 +44,23 @@ function DashboardContent() {
   useEffect(() => {
     if (!user) return;
     getUserById(user.uid).then((doc) => {
-      if (doc?.mustChangePassword) setMustChangePasswordState(true);
+      if (doc?.role) setCurrentRole(doc.role);
     });
   }, [user]);
 
-  const tabs = [
+  const allTabs = [
     { id: "inventory", label: "Inventory" },
     { id: "ordering", label: "Ordering" },
     { id: "prep", label: "Prep Lists" },
     { id: "reports", label: "Reports" },
-    { id: "settings", label: "Settings" },
+    { id: "settings", label: "Settings", roles: ["admin", "manager"] },
   ];
+
+  const tabs = allTabs.filter((t) => !t.roles || t.roles.includes(currentRole));
 
   const handleLogout = async () => {
     try {
+      clearAuthCookie();
       await signOut(auth);
       router.replace("/login");
     } catch (err) {
@@ -75,38 +73,8 @@ function DashboardContent() {
     setSidebarOpen(false);
   }
 
-  async function handlePasswordChange(e) {
-    e.preventDefault();
-    setPwError("");
-    if (pwForm.next.length < 8) {
-      setPwError("New password must be at least 8 characters.");
-      return;
-    }
-    if (pwForm.next !== pwForm.confirm) {
-      setPwError("Passwords do not match.");
-      return;
-    }
-    setPwLoading(true);
-    try {
-      const credential = EmailAuthProvider.credential(user.email, pwForm.current);
-      await reauthenticateWithCredential(user, credential);
-      await updatePassword(user, pwForm.next);
-      await setMustChangePassword(user.uid, false);
-      setMustChangePasswordState(false);
-    } catch (err) {
-      if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
-        setPwError("Current password is incorrect.");
-      } else {
-        setPwError(err.message);
-      }
-    } finally {
-      setPwLoading(false);
-    }
-  }
-
   if (loading || !user) return <div>Loading...</div>;
 
-  // Use shared color tokens
   const tokens = getColorTokens(darkMode);
   const bg = tokens.bg;
   const cardBg = tokens.cardBg;
@@ -145,32 +113,6 @@ function DashboardContent() {
 
   return (
     <div className={`flex flex-col md:flex-row h-screen ${bg} font-sans min-w-90 transition-colors duration-200`}>
-      {/* Change-password overlay */}
-      {mustChangePassword && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className={`${cardBg} rounded-xl shadow-lg p-8 w-full max-w-sm`}>
-            <h2 className={`text-xl font-bold mb-2 ${text}`}>Set your password</h2>
-            <p className="text-sm text-gray-500 mb-5">You must set a new password before continuing.</p>
-            <form onSubmit={handlePasswordChange} className="space-y-3">
-              <input type="password" placeholder="Current password" value={pwForm.current}
-                onChange={(e) => setPwForm((s) => ({ ...s, current: e.target.value }))}
-                className="w-full px-3 py-2 border rounded text-black" disabled={pwLoading} required />
-              <input type="password" placeholder="New password" value={pwForm.next}
-                onChange={(e) => setPwForm((s) => ({ ...s, next: e.target.value }))}
-                className="w-full px-3 py-2 border rounded text-black" disabled={pwLoading} required />
-              <input type="password" placeholder="Confirm new password" value={pwForm.confirm}
-                onChange={(e) => setPwForm((s) => ({ ...s, confirm: e.target.value }))}
-                className="w-full px-3 py-2 border rounded text-black" disabled={pwLoading} required />
-              {pwError && <p className="text-sm text-red-600">{pwError}</p>}
-              <button type="submit" disabled={pwLoading}
-                className="w-full bg-[#89986D] text-white py-2 rounded hover:bg-[#7a8960] disabled:opacity-50">
-                {pwLoading ? "Saving..." : "Set password"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Mobile top bar */}
       <header className={`md:hidden flex items-center ${sidebarBg} text-[#F6F0D7] px-4 h-14 shrink-0 transition-colors duration-200`}>
         <button onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle menu"
@@ -236,7 +178,7 @@ function DashboardContent() {
         {activeTab === "settings" && (
           <section>
             <div className={`${cardBg} ${text} rounded-xl shadow-md p-6 max-w-3xl mx-auto transition-colors duration-200`}>
-              <SettingsPage />
+              <SettingsPage currentRole={currentRole} />
             </div>
           </section>
         )}
