@@ -5,10 +5,18 @@ import { createUser, getUsers, updateUserDoc, deleteUserDoc } from "../../lib/us
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
 
-export default function SettingsPage() {
+const ASSIGNABLE_ROLES = {
+  admin: ["staff", "manager", "admin"],
+  manager: ["staff"],
+};
+
+export default function SettingsPage({ currentRole }) {
   const { darkMode } = useDarkMode();
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({ name: "", email: "", role: "staff" });
+
+  const assignableRoles = ASSIGNABLE_ROLES[currentRole] ?? [];
+  const canManage = (targetRole) => assignableRoles.includes(targetRole);
   const [editingId, setEditingId] = useState(null);
   const [notice, setNotice] = useState({ text: "", type: "success" });
   const [loading, setLoading] = useState(false);
@@ -150,8 +158,9 @@ export default function SettingsPage() {
               className={tokens.selectCls}
               disabled={loading}
             >
-              <option value="staff">Staff</option>
-              <option value="manager">Manager</option>
+              {assignableRoles.map((r) => (
+                <option key={r} value={r} className="capitalize">{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+              ))}
             </select>
           </div>
 
@@ -206,20 +215,20 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    className={tokens.editBtnCls}
-                    onClick={() => handleEditInit(user)}
-                    disabled={loading}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="px-3 py-1 text-sm bg-[#d9534f] text-white rounded hover:bg-[#c9302c] disabled:opacity-50"
-                    onClick={() => handleDelete(user)}
-                    disabled={loading}
-                  >
-                    Delete
-                  </button>
+                  {canManage(user.role) && (
+                    <button onClick={() => handleEditInit(user)} disabled={loading} className={editBtnCls}>
+                      Edit
+                    </button>
+                  )}
+                  {canManage(user.role) && (
+                    <button
+                      onClick={() => handleDelete(user)}
+                      disabled={loading}
+                      className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

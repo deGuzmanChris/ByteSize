@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth, provider, db } from "../../lib/firebase";
-import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { auth, provider } from "../../lib/firebase";
+import { signInWithPopup, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
 import { CookieIcon, CookieBackground } from "../components/CookieBackground";
+import { setAuthCookie } from "../../lib/useAuth";
+import { getUserByEmail } from "../../lib/users";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,8 +21,14 @@ export default function LoginPage() {
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      console.log("Firebase Google User:", user);
-      localStorage.setItem("user", JSON.stringify(user));
+      const employee = await getUserByEmail(user.email);
+      if (!employee) {
+        await signOut(auth);
+        alert("Access denied. Your Google account is not registered as an employee. Please contact your manager.");
+        return;
+      }
+      const token = await user.getIdToken();
+      setAuthCookie(token);
       router.push("/dashboard");
     } catch (error) {
       console.error(error);
@@ -34,8 +41,8 @@ export default function LoginPage() {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       const user = result.user;
-      console.log("Firebase Email User:", user);
-      localStorage.setItem("user", JSON.stringify(user));
+      const token = await user.getIdToken();
+      setAuthCookie(token);
       router.push("/dashboard");
     } catch (error) {
       console.error("Email Sign-In Error:", error);
