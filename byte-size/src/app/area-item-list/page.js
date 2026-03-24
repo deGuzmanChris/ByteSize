@@ -90,6 +90,11 @@ export function AreaItemList({ areaName, onBack }) {
   );
 
   const handleCreateItem = async (item) => {
+    // Prevent duplicate item names within the same area (case-insensitive)
+    if (items.some(existing => (existing.name || "").toLowerCase() === (item.item_name || "").toLowerCase())) {
+      alert("An item with this name already exists in this area.");
+      return;
+    }
     await createInventoryItem({
       ...item,
       area: areaName,

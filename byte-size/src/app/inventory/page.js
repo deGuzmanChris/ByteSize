@@ -48,10 +48,16 @@ export default function InventoryPage({ onAreaSelect }) {
    */
   const handleCreateArea = async (e) => {
     e.preventDefault();
-    if (newAreaName.trim() === "") return;
-    if (!/^[a-zA-Z\s]{1,20}$/.test(newAreaName.trim())) return;
+    const trimmedName = newAreaName.trim();
+    if (trimmedName === "") return;
+    if (!/^[a-zA-Z\s]{1,20}$/.test(trimmedName)) return;
+    // Prevent duplicate area names (case-insensitive)
+    if (areas.some(area => area.toLowerCase() === trimmedName.toLowerCase())) {
+      alert("Area name already exists.");
+      return;
+    }
     setCreatingArea(true);
-    await createArea(newAreaName.trim());
+    await createArea(trimmedName);
     setNewAreaName("");
     setShowCreateModal(false);
     // Refresh area list
