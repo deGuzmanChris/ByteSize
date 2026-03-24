@@ -4,6 +4,7 @@ import { getColorTokens } from "../colorTokens.js";
 import { useDarkMode } from "../../../lib/DarkModeContext";
 import { validateText } from "../../../lib/contentFilter";
 
+
 export default function EditItemModal({ item, onClose, onSave, categories }) {
   const [form, setForm] = useState({
     itemId: item.itemId || item.id || "",
@@ -46,6 +47,10 @@ export default function EditItemModal({ item, onClose, onSave, categories }) {
 
     onSave(form);
   };
+
+  // Sample options for units (copied from CreateItemModal)
+  const inventoryUnitOptions = ["lbs", "kg", "g", "oz", "units", "pcs", "bunch", "pack", "bottle", "can"];
+  const purchaseUnitOptions = ["case", "box", "bag", "carton", "bottle", "can", "pack", "tray", "roll", "dozen"];
 
   return (
     <Modal onClose={onClose} title={`Edit Item: ${form.item_name || ''}`} darkMode={darkMode}>
@@ -104,25 +109,33 @@ export default function EditItemModal({ item, onClose, onSave, categories }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex flex-col">
               <label className="block font-medium mb-1">Inventory Unit</label>
-              <input
+              <select
                 name="inventoryUnit"
-                placeholder="e.g. lbs, units"
                 value={form.inventoryUnit}
                 onChange={handleChange}
                 required
-                className={colorTokens.inputCls + " w-full"}
-              />
+                className={colorTokens.selectCls + " w-full"}
+              >
+                <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select unit</option>
+                {inventoryUnitOptions.map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col">
               <label className="block font-medium mb-1">Purchase Unit</label>
-              <input
+              <select
                 name="purchaseUnit"
-                placeholder="e.g. case, box"
                 value={form.purchaseUnit}
                 onChange={handleChange}
                 required
-                className={colorTokens.inputCls + " w-full"}
-              />
+                className={colorTokens.selectCls + " w-full"}
+              >
+                <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select unit</option>
+                {purchaseUnitOptions.map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col">
               <label className="block font-medium mb-1">Purchase Par</label>

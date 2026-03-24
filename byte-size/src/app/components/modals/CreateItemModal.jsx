@@ -24,6 +24,7 @@ export default function CreateItemModal({ onClose, onCreate, categories = [] }) 
   const { darkMode } = useDarkMode();
   const colorTokens = getColorTokens(darkMode);
 
+  // Input limitations
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -123,19 +124,47 @@ export default function CreateItemModal({ onClose, onCreate, categories = [] }) 
         <div className="border-t pt-6">
           <h2 className="text-lg font-semibold mb-4">Inventory Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-            <select name="inventoryUnit" value={form.inventoryUnit} onChange={handleChange} required className={colorTokens.selectCls + " w-full"}>
-              <option value="" disabled hidden>Select unit</option>
-              {inventoryUnitOptions.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
-            </select>
-
-            <select name="purchaseUnit" value={form.purchaseUnit} onChange={handleChange} required className={colorTokens.selectCls + " w-full"}>
-              <option value="" disabled hidden>Select unit</option>
-              {purchaseUnitOptions.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
-            </select>
-
-            <input name="purchasePar" type="number" value={form.purchasePar} onChange={handleChange} required className={colorTokens.inputCls + " w-full"} />
-
+            <div className="flex flex-col">
+              <label className="block font-medium mb-1">Inventory Unit</label>
+              <select
+                name="inventoryUnit"
+                value={form.inventoryUnit}
+                onChange={handleChange}
+                required
+                className={colorTokens.selectCls + " w-full"}
+              >
+                <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select unit</option>
+                {inventoryUnitOptions.map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="block font-medium mb-1">Purchase Unit</label>
+              <select
+                name="purchaseUnit"
+                value={form.purchaseUnit}
+                onChange={handleChange}
+                required
+                className={colorTokens.selectCls + " w-full"}
+              >
+                <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select unit</option>
+                {purchaseUnitOptions.map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="block font-medium mb-1">Purchase Par</label>
+              <input
+                name="purchasePar"
+                type="number"
+                value={form.purchasePar}
+                onChange={handleChange}
+                required
+                className={colorTokens.inputCls + " w-full"}
+              />
+            </div>
           </div>
         </div>
 

@@ -15,6 +15,7 @@ import { AreaItemList } from "../area-item-list/page";
 import OrderPage from "../order/page";
 import ReportsPage from "../reports/page";
 import SettingsPage from "../settings/page";
+import PrepListPage from "../../prep-list/page";
 
 const SIDEBAR_BREAKPOINT = 768;
 
@@ -179,7 +180,9 @@ function DashboardContent() {
         )}
         {activeTab === "prep" && (
           <section>
-            <div className={`${cardBg} ${text} rounded-xl shadow-md p-6 max-w-3xl mx-auto transition-colors duration-200`}></div>
+            <div className={`${cardBg} ${text} rounded-xl shadow-md p-6 max-w-3xl mx-auto transition-colors duration-200`}>
+              <PrepListPage />
+            </div>
           </section>
         )}
         {activeTab === "reports" && (
