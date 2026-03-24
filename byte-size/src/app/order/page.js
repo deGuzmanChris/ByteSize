@@ -1,27 +1,13 @@
 "use client";
 
-/*
-To-Do:
-
-- Update variables to be consistent with the variable names used in area-item-list
-- Set character limits for items
-- Create order form 
-- Create UI element to display items to be ordered separately from the rest of the inventory (Can be a separate box, a cart, or just highlights
-- Sort items from lowest to highest count
-*/
-
 import { useEffect, useMemo, useState } from "react";
-import { getInventoryItems } from "../../lib/inventory";
-import { logOrder } from "../../lib/orderHistory";
+import { getInventoryItems, updateInventoryItem } from "../../lib/inventory";
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
+import ExportOrderForm from "../components/ExportOrderForm.jsx";
 
 export default function OrderPage() {
   const { darkMode } = useDarkMode();
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Use shared color tokens
   const tokens = getColorTokens(darkMode);
   const text = tokens.text;
   const cardBg = tokens.secondaryBg;
@@ -31,126 +17,66 @@ export default function OrderPage() {
     : "w-20 text-right rounded border px-2 py-1 bg-white";
   const mutedText = darkMode ? "text-gray-400" : "text-gray-500";
 
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState("");
+
   useEffect(() => {
     async function load() {
       setLoading(true);
-      // Fetch all items from inventory Firestore database
       const all = await getInventoryItems();
-      // Converts items into table rows with their corresponding fields
       const mapped = all.map((item) => {
-        // Displays names that are shown on tables
         const name = String(item.item_name ?? "");
-        // PP & A/C become integers, only keep numbers and never non-digits
-        const pp = cleanInt(item.purchasePar); // Purchase Par (PP)
-        const ac = cleanInt(item.areaCount); // Actual Count (A/C)
-        // Need to order column never goes negative, stays 0
+        const pp = cleanInt(item.purchasePar);
+        const ac = cleanInt(item.areaCount);
         const need = Math.max(pp - ac, 0);
-        // Returns rows from table with corresponding items and their counts
-        return {
-          id: item.id,
-          name,
-          pp,
-          ac,
-          need,
-          unit: item.unit_of_measure || "",
-        };
+        return { id: item.id, name, pp, ac, need, unit: item.inventoryUnit || "" };
       });
-
       setRows(mapped);
       setLoading(false);
     }
-
     load();
   }, []);
 
-  // Called when Purchase Par is edited
-  function updatePP(id, raw) {
+  const updatePP = async (id, raw) => {
     const pp = cleanInt(raw);
     setRows((prev) =>
       prev.map((r) => (r.id === id ? { ...r, pp, need: Math.max(pp - r.ac, 0) } : r))
     );
-  }
+    await updateInventoryItem(id, { purchasePar: pp });
+  };
 
-  // Called when Actual Count is edited
-  function updateAC(id, raw) {
+  const updateAC = async (id, raw) => {
     const ac = cleanInt(raw);
     setRows((prev) =>
       prev.map((r) => (r.id === id ? { ...r, ac, need: Math.max(r.pp - ac, 0) } : r))
     );
-  }
+    await updateInventoryItem(id, { areaCount: ac });
+  };
 
-  // Called when order form is submitted and saves list of items needed to order in a file
-  async function exportCsv() {
-    const toExport = rows.filter((r) => r.need > 0);
-    // Export as CSV won't work when there's no need to order any items
-    if (toExport.length === 0) {
-      alert("Nothing to order...");
-      return;
-    }
-
-    const headers = ["Name", "PP", "A/C", "Need", "Unit"];
-    // CSV is always valid even with special characters by wrapping them in quotes
-    const escapeCell = (value) => {
-      const s = String(value ?? "");
-      if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-      return s;
-    };
-
-    const lines = [
-      headers.join(","),
-      ...toExport.map((r) =>
-        [
-          escapeCell(r.name),
-          escapeCell(r.pp),
-          escapeCell(r.ac),
-          escapeCell(r.need),
-          escapeCell(r.unit),
-        ].join(",")
-      ),
-    ];
-    // Rows are converted into a single CSV string
-    const csv = lines.join("\n");
-    // Creates download file blob in the browser
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    // Generates file name
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = String(today.getMonth() + 1).padStart(2, "0");
-    const d = String(today.getDate()).padStart(2, "0");
-    const filename = `ordering_${y}-${m}-${d}.csv`;
-    // Makes temp link to the blob, clicking the anchor triggers download, and cleans up memory
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-
-    // Log the order to Firestore for analytics
-    await logOrder(toExport);
-  }
-
-  // Adds up the Need to Order column across all items
+  const sortedRows = [...rows].sort((a, b) => b.need - a.need);
   const totalNeed = useMemo(() => rows.reduce((sum, r) => sum + r.need, 0), [rows]);
 
   return (
     <section>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className={`text-2xl font-bold ${text}`}>Ordering</h1>
-        <button
-          onClick={exportCsv}
-          disabled={loading || rows.length === 0}
-          className="rounded-lg px-4 py-2 font-semibold bg-[#89986D] text-[#F6F0D7] hover:bg-[#7C8A5F] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Export CSV
-        </button>
+        <ExportOrderForm rows={rows} notes={notes} disabled={loading || rows.length === 0} darkMode={darkMode} />
       </div>
 
+      {/* Notes */}
+      <textarea
+        placeholder="Order notes..."
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        className={`w-full mb-4 p-2 rounded border ${text}`}
+      />
+
+      {/* Inventory Table */}
       <div className={`${cardBg} rounded-xl shadow-md p-6 transition-colors duration-200`}>
         {loading ? (
-          <div className={darkMode ? "text-gray-400" : "text-gray-600"}>Loading items…</div>
+          <div className={mutedText}>Loading items…</div>
         ) : rows.length === 0 ? (
           <div className={mutedText}>No inventory items yet. Create items first.</div>
         ) : (
@@ -158,57 +84,66 @@ export default function OrderPage() {
             <table className={`w-full text-sm ${text}`}>
               <thead>
                 <tr className={borderCls}>
-                  <th className="text-left py-2 w-24">Status</th>
-                  <th className="text-left py-2">Name</th>
-                  <th className="text-right py-2 w-24">Purchase Par</th>
-                  <th className="text-right py-2 w-32">Actual/Count</th>
-                  <th className="text-right py-2 w-32">Need to Order</th>
+                  <th className="text-left py-3 px-3 w-24">Status</th>
+                  <th className="text-left py-3 px-3">Name</th>
+                  <th className="text-left py-3 px-3 w-20">Unit</th>
+                  <th className="text-right py-3 px-3 w-24">Purchase Par</th>
+                  <th className="text-right py-3 px-3 w-32">Actual/Count</th>
+                  <th className="text-right py-3 px-3 w-32">Need to Order</th>
                 </tr>
               </thead>
 
               <tbody>
-                {rows.map((r) => {
+                {sortedRows.map((r, idx) => {
                   const needsOrder = r.need > 0;
+                  const zebra = idx % 2 === 0 ? "bg-white/20 dark:bg-gray-800/20" : "";
+
                   return (
-                    <tr key={r.id} className={borderCls}>
-                      <td className="py-2">
-                        <span
-                          className={`inline-block w-3 h-3 rounded-full ${
-                            needsOrder ? "bg-yellow-400" : "bg-green-500"
-                          }`}
-                        />
+                    <tr
+                      key={r.id}
+                      className={`${borderCls} ${zebra} hover:bg-black/5 dark:hover:bg-white/5 transition-colors`}
+                    >
+                      <td className="py-3 px-3">
+                        <div className="flex items-center justify-center">
+                          <span
+                            className={`inline-block w-3 h-3 rounded-full ${needsOrder ? "bg-yellow-400" : "bg-green-500"}`}
+                          />
+                        </div>
                       </td>
-
-                      <td className="py-2 font-medium">{r.name}</td>
-
-                      <td className="py-2 text-right">
+                      <td className="py-3 px-3 font-medium">{r.name}</td>
+                      <td className="py-3 px-3">{r.unit}</td>
+                      <td className="py-3 px-3 text-right">
                         <input
                           inputMode="numeric"
                           pattern="[0-9]*"
                           value={String(r.pp)}
                           onChange={(e) => updatePP(r.id, e.target.value)}
-                          className={inputCls}
+                          className={`${inputCls} ml-auto`}
                         />
                       </td>
-
-                      <td className="py-2 text-right">
+                      <td className="py-3 px-3 text-right">
                         <input
                           inputMode="numeric"
                           pattern="[0-9]*"
                           value={String(r.ac)}
                           onChange={(e) => updateAC(r.id, e.target.value)}
-                          className={inputCls}
+                          className={`${inputCls} ml-auto`}
                         />
                       </td>
-
-                      <td className="py-2 text-right font-semibold">{r.need}</td>
+                      <td className="py-3 px-3 text-right font-semibold">
+                        <span className={needsOrder ? "text-yellow-600 dark:text-yellow-400" : ""}>
+                          {r.need}
+                        </span>
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
 
-            <div className={`mt-4 text-right font-semibold ${text}`}>Total Need: {totalNeed}</div>
+            <div className={`mt-4 text-right font-semibold ${text} pr-3`}>
+              Total Need: {totalNeed}
+            </div>
           </>
         )}
       </div>
@@ -216,9 +151,7 @@ export default function OrderPage() {
   );
 }
 
-  // Converts inputs or raw data into safe integers for clean calculations and prevents NaN errors
-  function cleanInt(raw) {
-    const s = String(raw ?? "").replace(/[^\d]/g, "");
-    if (s === "") return 0;
-    return Number(s.replace(/^0+(?=\d)/, ""));
-  }
+function cleanInt(raw) {
+  const s = String(raw ?? "").replace(/[^\d]/g, "").slice(0, 2);
+  return s === "" ? 0 : Number(s.replace(/^0+(?=\d)/, ""));
+}

@@ -11,12 +11,29 @@ import {
 const ORDER_HISTORY_COLLECTION = "orderHistory";
 
 // Log a completed order export to Firestore
-export async function logOrder(items) {
+export async function logOrder(input) {
+  // Support BOTH formats:
+  // 1. logOrder(itemsArray)
+  // 2. logOrder({ items, notes, createdAt })
+
+  const items = Array.isArray(input) ? input : input.items || [];
+  const notes = Array.isArray(input) ? "" : input.notes || "";
+  const createdAt = Array.isArray(input)
+    ? new Date()
+    : input.createdAt || new Date();
+
   const record = {
-    date: new Date().toISOString(),
-    items: items.map(({ id, name, need, unit }) => ({ id, name, need, unit })),
+    date: createdAt.toISOString(),
+    notes,
+    items: items.map(({ id, name, need, unit }) => ({
+      id,
+      name,
+      need,
+      unit,
+    })),
     totalQuantity: items.reduce((sum, r) => sum + r.need, 0),
   };
+
   await addDoc(collection(db, ORDER_HISTORY_COLLECTION), record);
 }
 

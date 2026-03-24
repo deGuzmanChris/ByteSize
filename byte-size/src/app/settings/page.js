@@ -23,6 +23,7 @@ export default function SettingsPage({ currentRole }) {
 
   // Use shared color tokens
   const tokens = getColorTokens(darkMode);
+  const editBtnCls = tokens.editBtnCls;
 
   useEffect(() => {
     fetchUsers();

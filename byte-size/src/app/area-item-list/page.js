@@ -135,7 +135,10 @@ export function AreaItemList({ areaName, onBack }) {
           <span className={`text-2xl font-bold ${text}`}>{areaName}</span>
         </div>
         <button
-          className="px-4 py-2 bg-[#8fa481] text-white hover:bg-[#7a926e] rounded shadow transition-colors"
+          className={`rounded-lg font-semibold px-4 py-2 ${darkMode
+              ? "bg-[#8fa481] text-white hover:bg-[#7a926e]"
+              : "bg-[#8fa481] text-black hover:bg-[#7a926e]"
+            } rounded shadow transition-colors`}
           onClick={() => setShowCreateModal(true)}
         >
           Create Item
@@ -175,7 +178,7 @@ export function AreaItemList({ areaName, onBack }) {
                   <input
                     type="number"
                     maxLength={2}
-                    className={`${mainCardBg} ${darkMode ? "text-white" : "text-black"} border-[#555] w-12 h-8 p-1 rounded border focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center placeholder:opacity-60 placeholder:font-semibold`}
+                    className={`${mainCardBg} ${darkMode ? "text-white" : "text-black"} border-[#555] w-15 h-8 p-1 rounded border focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center placeholder:opacity-60 placeholder:font-semibold`}
                     style={{ MozAppearance: "textfield", marginRight: "2px" }}
                     placeholder="Qty"
                     value={(() => {
