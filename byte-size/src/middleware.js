@@ -41,11 +41,12 @@ export async function middleware(request) {
   return NextResponse.next();
 }
 
-/* 
-Update matcher so that it runs for redirect pages like dashboard, inventory etc. 
-Current implementation only runs middleware for a page that I'm not sure exists
-in our project. 
-*/
+// Run middleware on all app routes — static assets and API routes are excluded.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/",
+    "/login/:path*",
+    "/dashboard/:path*",
+    "/area-item-list/:path*",
+  ],
 };
