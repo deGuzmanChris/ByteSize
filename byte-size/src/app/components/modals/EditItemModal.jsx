@@ -2,6 +2,7 @@ import { useState } from "react";
 import Modal from "../Modal.jsx";
 import { getColorTokens } from "../colorTokens.js";
 import { useDarkMode } from "../../../lib/DarkModeContext";
+import { validateText } from "../../../lib/contentFilter";
 
 export default function EditItemModal({ item, onClose, onSave, categories }) {
   const [form, setForm] = useState({
@@ -17,14 +18,32 @@ export default function EditItemModal({ item, onClose, onSave, categories }) {
 
   const { darkMode } = useDarkMode();
   const colorTokens = getColorTokens(darkMode);
+  const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setForm((prev) => ({ ...prev, [name]: value }));
+
+    if (["item_name", "itemId", "vendorNumber"].includes(name)) {
+      const error = validateText(value);
+      setErrors((prev) => ({ ...prev, [name]: error }));
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const newErrors = {
+      item_name: validateText(form.item_name),
+      itemId: validateText(form.itemId),
+      vendorNumber: form.vendorNumber ? validateText(form.vendorNumber) : "",
+    };
+
+    setErrors(newErrors);
+
+    if (Object.values(newErrors).some((err) => err)) return;
+
     onSave(form);
   };
 
@@ -41,6 +60,7 @@ export default function EditItemModal({ item, onClose, onSave, categories }) {
               required
               className={colorTokens.inputCls + " w-full"}
             />
+            {errors.item_name && <p className="text-red-500 text-sm mt-1">{errors.item_name}</p>}
           </div>
           <div className="flex flex-col">
             <label className="block font-medium mb-1">Item ID</label>
@@ -51,6 +71,7 @@ export default function EditItemModal({ item, onClose, onSave, categories }) {
               required
               className={colorTokens.inputCls + " w-full"}
             />
+            {errors.item_name && <p className="text-red-500 text-sm mt-1">{errors.item_name}</p>}
           </div>
           <div className="flex flex-col">
             <label className="block font-medium mb-1">Vendor Number</label>
@@ -60,21 +81,22 @@ export default function EditItemModal({ item, onClose, onSave, categories }) {
               onChange={handleChange}
               className={colorTokens.inputCls + " w-full"}
             />
+            {errors.item_name && <p className="text-red-500 text-sm mt-1">{errors.item_name}</p>}
           </div>
           <div className="flex flex-col">
             <label className="block font-medium mb-1">Category</label>
-              <select
-                name="category"
-                value={form.category}
-                onChange={handleChange}
-                required
-                className={colorTokens.selectCls + " w-full"}
-              >
-                <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select category</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+            <select
+              name="category"
+              value={form.category}
+              onChange={handleChange}
+              required
+              className={colorTokens.selectCls + " w-full"}
+            >
+              <option value="" disabled hidden style={{ color: '#a3a3a3' }}>Select category</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
           </div>
         </div>
         <div className="border-t pt-6">

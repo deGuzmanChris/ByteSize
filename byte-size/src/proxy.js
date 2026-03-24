@@ -8,7 +8,7 @@ const JWKS = createRemoteJWKSet(
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
-export async function middleware(request) {
+export async function proxy(request) {
   const { pathname } = request.nextUrl;
   const onLoginPage = pathname.startsWith("/login");
 

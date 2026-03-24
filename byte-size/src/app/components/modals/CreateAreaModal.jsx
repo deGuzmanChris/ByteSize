@@ -2,7 +2,7 @@ import Modal from "../Modal";
 import { getColorTokens } from "../colorTokens";
 import { useDarkMode } from "../../../lib/DarkModeContext";
 
-export default function CreateAreaModal({ onClose, onSubmit, value, onChange, creating }) {
+export default function CreateAreaModal({ onClose, onSubmit, value, onChange, creating, error }) {
   const { darkMode } = useDarkMode();
   const tokens = getColorTokens(darkMode);
   return (
@@ -17,6 +17,11 @@ export default function CreateAreaModal({ onClose, onSubmit, value, onChange, cr
           maxLength={20}
           autoFocus
         />
+        {error && (
+          <p className="text-red-500 text-sm mt-2">
+            {error}
+          </p>
+        )}
         <div className="text-xs text-gray-500 mt-1 text-left">Max 20 characters</div>
         <div className="flex justify-end gap-2">
           <button type="button" className={tokens.cancelBtn} onClick={onClose}>Cancel</button>
