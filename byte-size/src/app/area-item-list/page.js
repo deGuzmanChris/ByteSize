@@ -24,6 +24,16 @@ export function AreaItemList({ areaName, onBack }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  // Handler to limit search input: max 30 chars, only alphanumeric and spaces
+  const handleSearchChange = (e) => {
+    let value = e.target.value;
+    // Only allow alphanumeric and spaces
+    value = value.replace(/[^a-zA-Z0-9 ]/g, "");
+    // Limit to 30 characters
+    if (value.length > 30) value = value.slice(0, 30);
+    setSearch(value);
+  };
   const [areaCountInputs, setAreaCountInputs] = useState({});
   const [savedStatus, setSavedStatus] = useState({});
   const [viewItem, setViewItem] = useState(null);
@@ -134,7 +144,10 @@ export function AreaItemList({ areaName, onBack }) {
           type="text"
           placeholder="Search Items"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={handleSearchChange}
+          maxLength={30}
+          pattern="[a-zA-Z0-9 ]*"
+          title="Only letters, numbers, and spaces allowed. Max 30 characters."
         />
       </div>
 

@@ -18,9 +18,24 @@ export default function CreateItemModal({ onClose, onCreate, categories = [] }) 
   const { darkMode } = useDarkMode();
   const colorTokens = getColorTokens(darkMode);
 
+  // Input limitations
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    let newValue = value;
+    if (name === "item_name") {
+      // Only allow letters, numbers, spaces, max 30 chars
+      newValue = newValue.replace(/[^a-zA-Z0-9 ]/g, "").slice(0, 30);
+    } else if (name === "itemId") {
+      // Only allow letters, numbers, dashes, max 20 chars
+      newValue = newValue.replace(/[^a-zA-Z0-9\-]/g, "").slice(0, 20);
+    } else if (name === "vendorNumber") {
+      // Only allow numbers, max 10 chars
+      newValue = newValue.replace(/[^0-9]/g, "").slice(0, 10);
+    } else if (name === "purchasePar") {
+      // Only allow numbers, max 5 digits
+      newValue = newValue.replace(/[^0-9]/g, "").slice(0, 5);
+    }
+    setForm((prev) => ({ ...prev, [name]: newValue }));
   };
 
   const handleSubmit = (e) => {
@@ -44,6 +59,9 @@ export default function CreateItemModal({ onClose, onCreate, categories = [] }) 
               value={form.item_name}
               onChange={handleChange}
               required
+              maxLength={30}
+              pattern="[a-zA-Z0-9 ]*"
+              title="Only letters, numbers, and spaces. Max 30 characters."
               className={colorTokens.inputCls + " w-full"}
             />
           </div>
@@ -54,6 +72,9 @@ export default function CreateItemModal({ onClose, onCreate, categories = [] }) 
               value={form.itemId}
               onChange={handleChange}
               required
+              maxLength={20}
+              pattern="[a-zA-Z0-9\-]*"
+              title="Only letters, numbers, and dashes. Max 20 characters."
               className={colorTokens.inputCls + " w-full"}
             />
           </div>
@@ -63,6 +84,9 @@ export default function CreateItemModal({ onClose, onCreate, categories = [] }) 
               name="vendorNumber"
               value={form.vendorNumber}
               onChange={handleChange}
+              maxLength={10}
+              pattern="[0-9]*"
+              title="Only numbers. Max 10 digits."
               className={colorTokens.inputCls + " w-full"}
             />
           </div>
@@ -119,10 +143,13 @@ export default function CreateItemModal({ onClose, onCreate, categories = [] }) 
               <label className="block font-medium mb-1">Purchase Par</label>
               <input
                 name="purchasePar"
-                type="number"
+                type="text"
                 value={form.purchasePar}
                 onChange={handleChange}
                 required
+                maxLength={5}
+                pattern="[0-9]*"
+                title="Only numbers. Max 5 digits."
                 className={colorTokens.inputCls + " w-full"}
               />
             </div>
