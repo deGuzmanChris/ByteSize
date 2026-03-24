@@ -118,7 +118,8 @@ function DashboardContent() {
   );
 
   return (
-    <div className={`flex flex-col md:flex-row h-screen ${bg} font-sans min-w-90 transition-colors duration-200`}>
+    <div className={`relative flex flex-col md:flex-row h-screen ${bg} font-sans min-w-90 transition-colors duration-200`}>
+      <CookieBackground darkMode={darkMode} id="dashboard" />
       {/* Mobile top bar */}
       <header className={`relative z-10 md:hidden flex items-center ${sidebarBg} text-[#F6F0D7] px-4 h-14 shrink-0 transition-colors duration-200`}>
         <button onClick={() => setSidebarOpen((v) => !v)} aria-label="Toggle menu"

@@ -41,6 +41,12 @@ export async function proxy(request) {
   return NextResponse.next();
 }
 
+// Run middleware on all app routes — static assets and API routes are excluded.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/",
+    "/login/:path*",
+    "/dashboard/:path*",
+    "/area-item-list/:path*",
+  ],
 };
