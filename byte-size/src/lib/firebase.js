@@ -25,4 +25,4 @@ const provider = new GoogleAuthProvider();
 
 setPersistence(auth, browserLocalPersistence);
 
-export { auth, provider, db };
+export { app, auth, provider, db };

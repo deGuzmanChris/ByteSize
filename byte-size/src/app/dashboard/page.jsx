@@ -57,7 +57,7 @@ function DashboardContent() {
     { id: "ordering", label: "Ordering" },
     { id: "prep", label: "Prep Lists" },
     { id: "reports", label: "Reports" },
-    { id: "settings", label: "Settings", roles: ["admin", "manager"] },
+    { id: "settings", label: "Settings" },
   ];
 
   const tabs = allTabs.filter((t) => !t.roles || t.roles.includes(currentRole));
@@ -166,7 +166,7 @@ function DashboardContent() {
               {activeArea ? (
                 <AreaItemList areaName={activeArea} onBack={() => setActiveArea(null)} />
               ) : (
-                <InventoryPage onAreaSelect={setActiveArea} />
+                <InventoryPage onAreaSelect={setActiveArea} currentRole={currentRole} />
               )}
             </div>
           </section>

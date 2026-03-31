@@ -1,4 +1,5 @@
 import { db, auth } from "./firebase";
+import { encryptField, decryptField } from "./encryption";
 import {
   collection,
   setDoc,
@@ -56,13 +57,20 @@ export async function createUser({ name, email, role }) {
 
 export async function getUsers() {
   const snapshot = await getDocs(collection(db, USERS_COLLECTION));
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const users = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  for (const user of users) {
+    user.name = await decryptField(user.name);
+  }
+  return users;
 }
 
 export async function getUserById(uid) {
   const ref = doc(db, USERS_COLLECTION, uid);
   const snapshot = await getDoc(ref);
-  return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+  if (!snapshot.exists()) return null;
+  const data = { id: snapshot.id, ...snapshot.data() };
+  data.name = await decryptField(data.name);
+  return data;
 }
 
 export async function getUserByEmail(email) {
@@ -70,13 +78,16 @@ export async function getUserByEmail(email) {
   const snapshot = await getDocs(q);
   if (snapshot.empty) return null;
   const d = snapshot.docs[0];
-  return { id: d.id, ...d.data() };
+  const data = { id: d.id, ...d.data() };
+  data.name = await decryptField(data.name);
+  return data;
 }
 
 export async function createUserDoc(uid, { name, email, role, authProvider = "email" }) {
+  const encryptedName = await encryptField(name);
   await setDoc(doc(db, USERS_COLLECTION, uid), {
     id: uid,
-    name,
+    name: encryptedName,
     email,
     role,
     authProvider,
@@ -86,7 +97,11 @@ export async function createUserDoc(uid, { name, email, role, authProvider = "em
 }
 
 export async function updateUserDoc(uid, data) {
-  await updateDoc(doc(db, USERS_COLLECTION, uid), data);
+  const updatedData = { ...data };
+  if (updatedData.name) {
+    updatedData.name = await encryptField(updatedData.name);
+  }
+  await updateDoc(doc(db, USERS_COLLECTION, uid), updatedData);
 }
 
 export async function deleteUserDoc(uid) {
