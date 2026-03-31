@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminApp } from "../../../../lib/firebaseAdmin";
+import admin from "../../../../lib/firebaseAdmin";
 
 export async function POST(request) {
   try {
@@ -9,7 +9,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "uid is required" }, { status: 400 });
     }
 
-    await getAdminApp().auth().deleteUser(uid);
+    await admin.auth().deleteUser(uid);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("deleteUser error:", error);

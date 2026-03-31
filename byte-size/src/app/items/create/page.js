@@ -4,8 +4,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useDarkMode } from "../../../lib/DarkModeContext";
-import { getColorTokens } from "../../components/colorTokens";
+import { useDarkMode } from "../../lib/DarkModeContext";
+import { getColorTokens } from "../components/colorTokens";
 
 export default function CreateItemPage() {
   const router = useRouter();
