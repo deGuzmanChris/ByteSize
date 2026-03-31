@@ -22,7 +22,7 @@ const customBannedWords = [
 // Add to leo filter
 leoProfanity.add(customBannedWords);
 
-// Optional: normalize text (helps catch bypass attempts)
+// Normalize text (helps catch bypass attempts)
 const normalize = (text) =>
   text
     .toLowerCase()
