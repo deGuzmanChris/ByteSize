@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { getOrderHistory } from "../../lib/orderHistory";
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
+import ForecasterAI from "../components/ForecasterAI";
 
 // SummaryCard component for report summary display
 function SummaryCard({ cardBg, label, value, sub }) {
@@ -115,8 +116,10 @@ function ReportsPage() {
               {t.label}
             </button>
           ))}
+          
         </div>
       </div>
+        <ForecasterAI />
 
       {loading ? (
         <div className={muted}>Loading analytics…</div>

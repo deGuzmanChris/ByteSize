@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { createUser, getUsers, updateUserDoc, deleteUserDoc } from "../../lib/users";
+import { auth } from "../../lib/firebase";
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
 
 const ASSIGNABLE_ROLES = {
-  admin: ["staff", "manager", "admin"],
-  manager: ["staff"],
+  admin: ["staff", "admin"],
 };
 
 export default function SettingsPage({ currentRole }) {
@@ -15,6 +15,7 @@ export default function SettingsPage({ currentRole }) {
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({ name: "", email: "", role: "staff" });
 
+  const isAdmin = currentRole === "admin";
   const assignableRoles = ASSIGNABLE_ROLES[currentRole] ?? [];
   const canManage = (targetRole) => assignableRoles.includes(targetRole);
   const [editingId, setEditingId] = useState(null);
@@ -101,9 +102,13 @@ export default function SettingsPage({ currentRole }) {
     if (!confirm(`Delete ${user.name}? This cannot be undone.`)) return;
     setLoading(true);
     try {
+      const idToken = await auth.currentUser.getIdToken();
       const res = await fetch("/api/admin/deleteUser", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
+        },
         body: JSON.stringify({ uid: user.id }),
       });
       if (!res.ok) {
@@ -123,76 +128,78 @@ export default function SettingsPage({ currentRole }) {
 
   return (
     <div className={`${tokens.text} transition-colors duration-200`}>
-      <div className={`${tokens.sectionBg} rounded-xl shadow p-6 mb-6 transition-colors duration-200`}>
-        <h2 className="text-lg font-semibold mb-1">
-          {editingId ? "Edit User" : "Create New User"}
-        </h2>
-        {!editingId && (
-          <p className={`text-sm mb-4 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-            A password-setup email will be sent to the new user automatically.
-          </p>
-        )}
-
-        <form onSubmit={editingId ? handleUpdate : handleCreate} className="space-y-3">
-          <div className="flex flex-col md:flex-row gap-3">
-            <input
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              placeholder="Full name"
-              className={tokens.inputCls}
-              disabled={loading}
-            />
-            <input
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="Email"
-              type="email"
-              className={tokens.inputCls}
-              disabled={loading || !!editingId}
-            />
-            <select
-              name="role"
-              value={form.role}
-              onChange={handleChange}
-              className={tokens.selectCls}
-              disabled={loading}
-            >
-              {assignableRoles.map((r) => (
-                <option key={r} value={r} className="capitalize">{r.charAt(0).toUpperCase() + r.slice(1)}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-[#89986D] text-white px-4 py-2 rounded hover:bg-[#7a8960] disabled:opacity-50"
-            >
-              {loading ? "Saving..." : editingId ? "Save changes" : "Create user"}
-            </button>
-            {editingId && (
-              <button type="button" onClick={resetForm} disabled={loading} className={tokens.cancelBtn}>
-                Cancel
-              </button>
-            )}
-          </div>
-
-          {notice.text && (
-            <div
-              className={`text-sm px-3 py-2 rounded ${
-                notice.type === "error"
-                  ? "bg-red-50 text-red-700"
-                  : "bg-green-50 text-green-700"
-              }`}
-            >
-              {notice.text}
-            </div>
+      {isAdmin && (
+        <div className={`${tokens.sectionBg} rounded-xl shadow p-6 mb-6 transition-colors duration-200`}>
+          <h2 className="text-lg font-semibold mb-1">
+            {editingId ? "Edit User" : "Create New User"}
+          </h2>
+          {!editingId && (
+            <p className={`text-sm mb-4 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+              A password-setup email will be sent to the new user automatically.
+            </p>
           )}
-        </form>
-      </div>
+
+          <form onSubmit={editingId ? handleUpdate : handleCreate} className="space-y-3">
+            <div className="flex flex-col md:flex-row gap-3">
+              <input
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                placeholder="Full name"
+                className={tokens.inputCls}
+                disabled={loading}
+              />
+              <input
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="Email"
+                type="email"
+                className={tokens.inputCls}
+                disabled={loading || !!editingId}
+              />
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                className={tokens.selectCls}
+                disabled={loading}
+              >
+                {assignableRoles.map((r) => (
+                  <option key={r} value={r} className="capitalize">{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-[#89986D] text-white px-4 py-2 rounded hover:bg-[#7a8960] disabled:opacity-50"
+              >
+                {loading ? "Saving..." : editingId ? "Save changes" : "Create user"}
+              </button>
+              {editingId && (
+                <button type="button" onClick={resetForm} disabled={loading} className={tokens.cancelBtn}>
+                  Cancel
+                </button>
+              )}
+            </div>
+
+            {notice.text && (
+              <div
+                className={`text-sm px-3 py-2 rounded ${
+                  notice.type === "error"
+                    ? "bg-red-50 text-red-700"
+                    : "bg-green-50 text-green-700"
+                }`}
+              >
+                {notice.text}
+              </div>
+            )}
+          </form>
+        </div>
+      )}
 
       <div className={`${tokens.sectionBg} rounded-xl shadow p-6 transition-colors duration-200`}>
         <h2 className="text-lg font-semibold mb-4">Users</h2>
@@ -215,22 +222,24 @@ export default function SettingsPage({ currentRole }) {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  {canManage(user.role) && (
-                    <button onClick={() => handleEditInit(user)} disabled={loading} className={editBtnCls}>
-                      Edit
-                    </button>
-                  )}
-                  {canManage(user.role) && (
-                    <button
-                      onClick={() => handleDelete(user)}
-                      disabled={loading}
-                      className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-2">
+                    {canManage(user.role) && (
+                      <button onClick={() => handleEditInit(user)} disabled={loading} className={editBtnCls}>
+                        Edit
+                      </button>
+                    )}
+                    {canManage(user.role) && (
+                      <button
+                        onClick={() => handleDelete(user)}
+                        disabled={loading}
+                        className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

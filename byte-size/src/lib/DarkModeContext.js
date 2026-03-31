@@ -12,7 +12,11 @@ export function DarkModeProvider({ children }) {
 
   useEffect(() => {
     const stored = localStorage.getItem("darkMode");
-    setDarkMode(stored === "true");
+    if (stored !== null) {
+      setDarkMode(stored === "true");
+    } else {
+      setDarkMode(window.matchMedia("(prefers-color-scheme: dark)").matches);
+    }
   }, []);
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { db } from "./firebase";
+import { encryptField, decryptField } from "./encryption";
 import {
   collection,
   addDoc,
@@ -22,9 +23,11 @@ export async function logOrder(input) {
     ? new Date()
     : input.createdAt || new Date();
 
+  const encryptedNotes = await encryptField(notes);
+
   const record = {
     date: createdAt.toISOString(),
-    notes,
+    notes: encryptedNotes,
     items: items.map(({ id, name, need, unit }) => ({
       id,
       name,
@@ -45,5 +48,9 @@ export async function getOrderHistory(sinceDate) {
     orderBy("date", "desc")
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const orders = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  for (const order of orders) {
+    order.notes = await decryptField(order.notes);
+  }
+  return orders;
 }
