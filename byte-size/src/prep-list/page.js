@@ -34,9 +34,17 @@ export default function PrepListPage() {
     async function fetchPrepItems() {
       setLoading(true);
       const items = await getInventoryItems();
+      const nextPrepQty = {};
+      const nextCompleted = {};
       setPrepItems(items);
-      setPrepQty({});
-      setCompleted({});
+      items.forEach((item, idx) => {
+        const id = item.id || idx;
+        const savedQty = item.prepQty ?? item.lastPrepQty ?? "";
+        nextPrepQty[id] = savedQty === null || savedQty === undefined ? "" : String(savedQty);
+        nextCompleted[id] = item.prepStatus === "completed";
+      });
+      setPrepQty(nextPrepQty);
+      setCompleted(nextCompleted);
       setLoading(false);
     }
     fetchPrepItems();
@@ -86,14 +94,24 @@ export default function PrepListPage() {
                   const id = item.id || idx;
                   const qty = prepQty[id] ?? "";
                   const isCompleted = completed[id] || false;
+                  const currentStock = Number(item.stock ?? item.quantity ?? 0);
+                  const rawPar = item.areaCount ?? item.purchasePar ?? item.requiredQty;
+                  const parTarget = rawPar === "" || rawPar === null || rawPar === undefined ? null : Number(rawPar);
+                  const requiredQty = parTarget === null || Number.isNaN(parTarget)
+                    ? null
+                    : Math.max(parTarget - currentStock, 0);
+                  const displayRequiredQty = requiredQty === null ? "-" : requiredQty;
 
                   async function handleCompleteChange(e) {
                     const checked = e.target.checked;
                     if (!checked) {
-                      setCompleted(c => ({ ...c, [id]: false }));
-                      // Optionally update DB to pending
-                      await updateInventoryItem(id, { ...item, prepStatus: "pending" });
-                      showToast("info", "Marked as pending.");
+                      try {
+                        await updateInventoryItem(id, { ...item, prepStatus: "pending" });
+                        setCompleted(c => ({ ...c, [id]: false }));
+                        showToast("info", "Marked as pending.");
+                      } catch {
+                        showToast("error", "Failed to update status.");
+                      }
                       return;
                     }
                     // Validate numeric input
@@ -102,32 +120,28 @@ export default function PrepListPage() {
                       showToast("error", "Enter a valid prep quantity.");
                       return;
                     }
-                    // Prevent negative stock
-                    const currentStock = Number(item.stock ?? item.quantity ?? 0);
-                    if (currentStock - usedQty < 0) {
-                      showToast("error", "Not enough stock. Cannot go negative.");
+                    if (requiredQty === null || usedQty !== requiredQty) {
+                      showToast("error", "Prep quantity must match required quantity.");
                       return;
                     }
                     try {
-                      // Deduct from inventory and update prep status
                       await updateInventoryItem(id, {
                         ...item,
-                        stock: currentStock - usedQty,
                         prepStatus: "completed",
                         lastPrepDate: date,
                         lastPrepQty: usedQty,
                       });
                       setCompleted(c => ({ ...c, [id]: true }));
-                      showToast("success", "Prep completed and inventory updated.");
+                      showToast("success", "Prep completed.");
                     } catch (err) {
-                      showToast("error", "Failed to update inventory.");
+                      showToast("error", "Failed to update status.");
                     }
                   }
 
                   return (
                     <tr key={id} className="border-b last:border-0">
                       <td className="py-2 px-2 font-medium">{item.item_name || item.name || "-"}</td>
-                      <td className="py-2 px-2">{item.requiredQty ?? "-"}</td>
+                      <td className="py-2 px-2">{displayRequiredQty}</td>
                       <td className="py-2 px-2">{item.inventoryUnit || item.unit_of_measure || "-"}</td>
                       <td className="py-2 px-2 capitalize">{isCompleted ? "completed" : "pending"}</td>
                       <td className="py-2 px-2">
@@ -136,24 +150,21 @@ export default function PrepListPage() {
                           min={0}
                           className={tokens.inputCls + " w-24"}
                           value={qty}
-                          onChange={e => {
+                          onChange={async e => {
                             const val = e.target.value;
                             if (val === "" || (/^\d+$/.test(val) && Number(val) >= 0)) {
                               setPrepQty(q => ({ ...q, [id]: val }));
                               // If completed, revert to pending if input is changed
                               if (isCompleted) setCompleted(c => ({ ...c, [id]: false }));
-                            }
-                          }}
-                          onBlur={async e => {
-                            const val = e.target.value;
-                            const numVal = Number(val);
-                            // Use item.lastPrepQty or item.prepQty as fallback for comparison
-                            const lastSaved = item.lastPrepQty ?? item.prepQty ?? "";
-                            if (val !== "" && /^\d+$/.test(val) && numVal >= 0 && numVal !== lastSaved) {
                               try {
-                                await updateInventoryItem(id, { ...item, lastPrepQty: numVal, prepQty: numVal });
-                                setPrepItems(items => items.map(it => it.id === id ? { ...it, lastPrepQty: numVal, prepQty: numVal } : it));
-                                showToast("success", "Prep quantity saved.");
+                                if (val === "") {
+                                  await updateInventoryItem(id, { ...item, lastPrepQty: null, prepQty: null });
+                                  setPrepItems(items => items.map(it => it.id === id ? { ...it, lastPrepQty: null, prepQty: null } : it));
+                                } else {
+                                  const numVal = Number(val);
+                                  await updateInventoryItem(id, { ...item, lastPrepQty: numVal, prepQty: numVal });
+                                  setPrepItems(items => items.map(it => it.id === id ? { ...it, lastPrepQty: numVal, prepQty: numVal } : it));
+                                }
                               } catch {
                                 showToast("error", "Failed to save prep quantity.");
                               }
