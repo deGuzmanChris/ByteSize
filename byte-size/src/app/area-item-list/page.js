@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { FaInfoCircle, FaPen, FaTrash, FaChevronLeft } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getInventoryItems, createInventoryItem, updateInventoryItem, deleteInventoryItem } from "../../lib/inventory";
@@ -265,11 +265,17 @@ export function AreaItemList({ areaName, onBack }) {
  * Default export: page wrapper for direct URL access (/area-item-list?areaName=X).
  * Reads props from the URL and delegates to the content component.
  */
-function AreaItemListPage() {
+function AreaItemListPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const areaName = searchParams.get("areaName");
   return <AreaItemList areaName={areaName} onBack={() => router.push("/dashboard")} />;
 }
 
-export default AreaItemListPage;
+export default function AreaItemListPage() {
+  return (
+    <Suspense fallback={<section className="p-6">Loading...</section>}>
+      <AreaItemListPageContent />
+    </Suspense>
+  );
+}
