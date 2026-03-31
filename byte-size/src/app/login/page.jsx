@@ -57,6 +57,10 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = () => {
+    router.push("/forgot-password");
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <CookieBackground darkMode={darkMode} id="login" />
@@ -117,6 +121,15 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+            </div>
+            <div className="mb-4 text-right">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-sm text-[#89986D] hover:text-[#7a8960] transition-colors"
+              >
+                Forgot password?
+              </button>
             </div>
             <button
               type="submit"
