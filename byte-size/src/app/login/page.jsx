@@ -2,12 +2,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, provider } from "../../lib/firebase";
-import { signInWithPopup, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { signInWithPopup, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "firebase/auth";
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
 import { CookieIcon, CookieBackground } from "../components/CookieBackground";
 import { setAuthCookie } from "../../lib/useAuth";
 import { getUserByEmail } from "../../lib/users";
+import ReCAPTCHA from "react-google-recaptcha";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,7 +17,12 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMsg, setForgotMsg] = useState({ text: "", type: "" });
+
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   const handleGoogleSignIn = async () => {
     try {
@@ -39,6 +45,10 @@ export default function LoginPage() {
 
   const handleEmailSignIn = async (e) => {
     e.preventDefault();
+    if (recaptchaSiteKey && !captchaToken) {
+      alert("Please complete the CAPTCHA.");
+      return;
+    }
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       const user = result.user;
@@ -57,8 +67,30 @@ export default function LoginPage() {
     }
   };
 
-  const handleForgotPassword = () => {
-    router.push("/forgot-password");
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    const trimmed = forgotEmail.trim();
+    if (!trimmed) {
+      setForgotMsg({ text: "Please enter your email.", type: "error" });
+      return;
+    }
+    try {
+      const employee = await getUserByEmail(trimmed);
+      if (!employee) {
+        setForgotMsg({ text: "No account found with this email.", type: "error" });
+        return;
+      }
+      if (employee.authProvider === "google") {
+        setForgotMsg({ text: "This account uses Google Sign-In. Use the Google button instead.", type: "error" });
+        return;
+      }
+      await sendPasswordResetEmail(auth, trimmed);
+      setForgotMsg({ text: "Password reset email sent! Check your inbox.", type: "success" });
+      setForgotEmail("");
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      setForgotMsg({ text: "Something went wrong. Please try again.", type: "error" });
+    }
   };
 
   return (
@@ -131,9 +163,20 @@ export default function LoginPage() {
                 Forgot password?
               </button>
             </div>
+            {recaptchaSiteKey && (
+              <div className="flex justify-center mb-2">
+                <ReCAPTCHA
+                  sitekey={recaptchaSiteKey}
+                  onChange={(token) => setCaptchaToken(token)}
+                  onExpired={() => setCaptchaToken(null)}
+                  theme={darkMode ? "dark" : "light"}
+                />
+              </div>
+            )}
             <button
               type="submit"
-              className="w-full bg-[#89986D] text-[#F6F0D7] font-semibold py-2 px-4 rounded hover:bg-[#7a8960] transition-colors"
+              disabled={recaptchaSiteKey && !captchaToken}
+              className="w-full bg-[#89986D] text-[#F6F0D7] font-semibold py-2 px-4 rounded hover:bg-[#7a8960] transition-colors disabled:opacity-50"
             >
               Sign In
             </button>
@@ -160,9 +203,50 @@ export default function LoginPage() {
             Continue with Google
           </button>
 
-          <p className="text-center text-xs text-gray-500 mt-4">
-            Don&apos;t have an account? Contact your manager.
-          </p>
+          {!showForgot ? (
+            <div className="text-center text-xs text-gray-500 mt-4 space-y-1">
+              <button
+                type="button"
+                onClick={() => { setShowForgot(true); setForgotMsg({ text: "", type: "" }); }}
+                className="underline hover:text-[#89986D] transition-colors"
+              >
+                Forgot Password?
+              </button>
+              <p>Don&apos;t have an account? Contact your manager.</p>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <form onSubmit={handleForgotPassword} className="space-y-2">
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className={`w-full p-3 rounded-lg border ${tokens.sidebarBorder} ${tokens.text} ${darkMode ? "bg-[#393939]" : "bg-white"} focus:outline-none focus:ring-2 focus:ring-[#89986D]`}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[#89986D] text-[#F6F0D7] font-semibold py-2 px-4 rounded hover:bg-[#7a8960] transition-colors text-sm"
+                  >
+                    Send Reset Email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowForgot(false); setForgotMsg({ text: "", type: "" }); setForgotEmail(""); }}
+                    className={`px-4 py-2 rounded text-sm font-semibold ${darkMode ? "bg-[#393939] text-gray-300 hover:bg-[#444]" : "bg-gray-200 text-gray-600 hover:bg-gray-300"} transition-colors`}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+              {forgotMsg.text && (
+                <p className={`text-xs mt-2 ${forgotMsg.type === "error" ? "text-red-500" : "text-green-600"}`}>
+                  {forgotMsg.text}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

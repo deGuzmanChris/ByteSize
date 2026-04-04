@@ -67,10 +67,11 @@ export default function OrderPage() {
 
       {/* Notes */}
       <textarea
-        placeholder="Order notes..."
+        placeholder="Notes"
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         className={`w-full mb-4 p-2 rounded border ${text}`}
+        maxLength={800}
       />
 
       {/* Inventory Table */}
@@ -87,8 +88,8 @@ export default function OrderPage() {
                   <th className="text-left py-3 px-3 w-24">Status</th>
                   <th className="text-left py-3 px-3">Name</th>
                   <th className="text-left py-3 px-3 w-20">Unit</th>
-                  <th className="text-right py-3 px-3 w-24">Purchase Par</th>
-                  <th className="text-right py-3 px-3 w-32">Actual/Count</th>
+                  <th className="text-right py-3 px-3 w-24">Par</th>
+                  <th className="text-right py-3 px-3 w-32">Count</th>
                   <th className="text-right py-3 px-3 w-32">Need to Order</th>
                 </tr>
               </thead>
@@ -96,7 +97,7 @@ export default function OrderPage() {
               <tbody>
                 {sortedRows.map((r, idx) => {
                   const needsOrder = r.need > 0;
-                  const zebra = idx % 2 === 0 ? "bg-white/20 dark:bg-gray-800/20" : "";
+                  const zebra = idx % 2 === 0 ? "bg-white/20 dark:bg-gray-500/30" : "";
 
                   return (
                     <tr
@@ -131,7 +132,7 @@ export default function OrderPage() {
                         />
                       </td>
                       <td className="py-3 px-3 text-right font-semibold">
-                        <span className={needsOrder ? "text-yellow-600 dark:text-yellow-400" : ""}>
+                        <span className={needsOrder ? "text-yellow-600 dark:text-yellow-600" : ""}>
                           {r.need}
                         </span>
                       </td>

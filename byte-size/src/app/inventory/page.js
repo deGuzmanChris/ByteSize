@@ -13,7 +13,7 @@ import { validateText } from "../../lib/contentFilter";
 /**
  * InventoryPage component displays all inventory areas and allows creating or deleting areas.
  */
-export default function InventoryPage({ onAreaSelect }) {
+export default function InventoryPage({ onAreaSelect, currentRole }) {
   const { darkMode } = useDarkMode();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -145,18 +145,20 @@ export default function InventoryPage({ onAreaSelect }) {
               >
                 <span className="flex-1 font-semibold text-base">{area}</span>
 
-                <button
-                  className="ml-4 p-2 bg-[#d9534f] text-white rounded-full shadow hover:bg-[#c9302c] transition-colors flex items-center justify-center"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setAreaToDelete(idx);
-                    setShowDeleteModal(true);
-                  }}
-                  title="Delete Area"
-                  aria-label="Delete Area"
-                >
-                  <FaTrash className="w-5 h-5" />
-                </button>
+                {currentRole === "admin" && (
+                  <button
+                    className="ml-4 p-2 bg-[#d9534f] text-white rounded-full shadow hover:bg-[#c9302c] transition-colors flex items-center justify-center"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAreaToDelete(idx);
+                      setShowDeleteModal(true);
+                    }}
+                    title="Delete Area"
+                    aria-label="Delete Area"
+                  >
+                    <FaTrash className="w-5 h-5" />
+                  </button>
+                )}
               </div>
             </li>
           ))}
