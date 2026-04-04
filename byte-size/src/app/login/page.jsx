@@ -22,6 +22,8 @@ export default function LoginPage() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMsg, setForgotMsg] = useState({ text: "", type: "" });
 
+  const [showPassword, setShowPassword] = useState(false);
+
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   const handleGoogleSignIn = async () => {
