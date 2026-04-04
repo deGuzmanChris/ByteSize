@@ -159,7 +159,7 @@ export default function LoginPage() {
             <div className="mb-4 text-right">
               <button
                 type="button"
-                onClick={handleForgotPassword}
+                onClick={() => router.push("/forgot-password")}
                 className="text-sm text-[#89986D] hover:text-[#7a8960] transition-colors"
               >
                 Forgot password?
@@ -207,13 +207,6 @@ export default function LoginPage() {
 
           {!showForgot ? (
             <div className="text-center text-xs text-gray-500 mt-4 space-y-1">
-              <button
-                type="button"
-                onClick={() => { setShowForgot(true); setForgotMsg({ text: "", type: "" }); }}
-                className="underline hover:text-[#89986D] transition-colors"
-              >
-                Forgot Password?
-              </button>
               <p>Don&apos;t have an account? Contact your manager.</p>
             </div>
           ) : (
