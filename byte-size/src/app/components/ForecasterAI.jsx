@@ -1,6 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 import { generateForecast } from "@/lib/gemini";
 import { getInventoryItems } from "@/lib/inventory";
 import { getOrderHistory } from "@/lib/orderHistory";
@@ -16,8 +28,43 @@ export default function ForecasterAI() {
   const [volume, setVolume] = useState("normal");
   const [notes, setNotes] = useState("");
   const [response, setResponse] = useState("");
+  const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Helper to extract chart data from forecast response (simple example: expects lines like 'Item: X, Forecast: Y')
+  function extractChartData(text) {
+    const lines = text.split("\n");
+    const labels = [];
+    const data = [];
+    lines.forEach((line) => {
+      // Remove leading/trailing whitespace and asterisks
+      let cleanLine = line.replace(/^[*\s]+|[*\s]+$/g, "");
+      if (!cleanLine) return;
+      // Ignore section headers or summary lines
+      if (/^(#|Current|Inventory|Forecast|Total|Summary|\d+\sitems?)/i.test(cleanLine)) return;
+      const match = cleanLine.match(/^(?:- )?(.*?):.*?(\d+(?:\.\d+)?)/);
+      if (match) {
+        // Remove asterisks from label
+        const cleanLabel = match[1].replace(/[*]+/g, "").trim();
+        labels.push(cleanLabel);
+        data.push(Number(match[2]));
+      }
+    });
+    if (labels.length && data.length) {
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Forecasted Qty",
+            data,
+            backgroundColor: "#8fa481",
+          },
+        ],
+      };
+    }
+    return null;
+  }
 
   async function handleGenerate() {
     setLoading(true);
@@ -68,6 +115,7 @@ Only respond to inventory-related questions. If the additional context is unrela
 
       const text = await generateForecast(prompt);
       setResponse(text);
+      setChartData(extractChartData(text));
     } catch (err) {
       console.error(err);
       setError("Failed to generate forecast. Please try again.");
@@ -77,7 +125,7 @@ Only respond to inventory-related questions. If the additional context is unrela
   }
 
   return (
-    <div className={`${tokens.secondaryBg} rounded-xl shadow-md p-6 transition-colors duration-200`}>
+    <div className={`${tokens.secondaryBg} rounded-xl shadow-md p-6 transition-colors duration-200 mb-8`}>
       <h2 className={`text-xl font-bold mb-4 ${tokens.text}`}>AI Forecaster</h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
@@ -159,13 +207,31 @@ Only respond to inventory-related questions. If the additional context is unrela
         <p className="mt-4 text-red-500 text-sm">{error}</p>
       )}
 
-      {/* Response */}
-      {response && (
-        <div className={`mt-6 p-4 rounded-lg ${tokens.cardBg} ${tokens.text}`}>
-          <h3 className="font-semibold mb-2">Forecast</h3>
-          <div className="whitespace-pre-wrap text-sm leading-relaxed">
-            {response}
-          </div>
+      {/* Chart (only if chartData is available) */}
+      {chartData && (
+        <div className="mt-6 p-4 rounded-lg bg-white">
+          <h3 className="font-semibold mb-2 text-gray-800">Forecast Chart</h3>
+          <Bar data={chartData} options={{
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              title: { display: false },
+            },
+            scales: {
+              x: {
+                title: { display: true, text: "Item" },
+                ticks: {
+                  maxRotation: 0,
+                  minRotation: 0,
+                  callback: function(value, index) {
+                    // Always return the label at the index
+                    return chartData.labels[index] || '';
+                  }
+                },
+              },
+              y: { title: { display: true, text: "Forecasted Qty" }, beginAtZero: true },
+            },
+          }} />
         </div>
       )}
     </div>
