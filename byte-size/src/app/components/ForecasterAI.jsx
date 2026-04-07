@@ -204,16 +204,14 @@ export default function ForecasterAI() {
         >Detailed</button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
         {/* Time Range */}
-        <div>
-          <label className={`block text-sm font-medium mb-1 ${tokens.text}`}>
-            Forecast Period
-          </label>
+        <div className="flex flex-col gap-2">
+          <label className={`block text-sm font-medium ${tokens.text}`}>Forecast Period</label>
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className={tokens.selectCls}
+            className={tokens.selectCls + " w-full"}
           >
             <option value="7">Next 7 days</option>
             <option value="14">Next 14 days</option>
@@ -222,14 +220,12 @@ export default function ForecasterAI() {
         </div>
 
         {/* Focus */}
-        <div>
-          <label className={`block text-sm font-medium mb-1 ${tokens.text}`}>
-            Focus
-          </label>
+        <div className="flex flex-col gap-2">
+          <label className={`block text-sm font-medium ${tokens.text}`}>Focus</label>
           <select
             value={focus}
             onChange={(e) => setFocus(e.target.value)}
-            className={tokens.selectCls}
+            className={tokens.selectCls + " w-full"}
           >
             <option value="all">All Items</option>
             <option value="low-stock">Low Stock Only</option>
@@ -238,14 +234,12 @@ export default function ForecasterAI() {
         </div>
 
         {/* Volume */}
-        <div>
-          <label className={`block text-sm font-medium mb-1 ${tokens.text}`}>
-            Expected Volume
-          </label>
+        <div className="flex flex-col gap-2">
+          <label className={`block text-sm font-medium ${tokens.text}`}>Expected Volume</label>
           <select
             value={volume}
             onChange={(e) => setVolume(e.target.value)}
-            className={tokens.selectCls}
+            className={tokens.selectCls + " w-full"}
           >
             <option value="slow">Slow</option>
             <option value="normal">Normal</option>
@@ -318,25 +312,25 @@ export default function ForecasterAI() {
 
       {/* Detailed Display */}
       {displayMode === "detailed" && (
-        <div className={`mt-6 p-4 rounded-xl shadow border border-black ${tokens.forecastDetailBg} ${tokens.forecastDetailText}`}>
+        <div className={`mt-6 p-4 rounded-xl shadow border ${darkMode ? "border-white" : "border-black"} ${tokens.forecastDetailBg} ${tokens.forecastDetailText}`}>
           <h3 className={`font-semibold mb-2 ${tokens.forecastDetailText}`}>Forecast Details</h3>
 
           {/* Infographic Table */}
           {chartData && chartData.labels && chartData.labels.length > 0 && (
             <div className="mb-4">
               <strong>Infographic:</strong>
-              <table className="min-w-[200px] mt-2 border border-gray-200 text-sm">
+              <table className={`min-w-[200px] mt-2 border ${darkMode ? 'border-gray-600' : 'border-gray-200'} text-sm`}>
                 <thead>
-                  <tr className="bg-gray-100">
-                    <th className="px-2 py-1 border-b border-gray-200 text-left">Item</th>
-                    <th className="px-2 py-1 border-b border-gray-200 text-left">Forecasted Qty</th>
+                  <tr className={darkMode ? 'bg-[#222] text-white' : 'bg-gray-100 text-gray-900'}>
+                    <th className={`px-2 py-1 border-b ${darkMode ? 'border-gray-600' : 'border-gray-200'} text-left`}>Item</th>
+                    <th className={`px-2 py-1 border-b ${darkMode ? 'border-gray-600' : 'border-gray-200'} text-left`}>Forecasted Qty</th>
                   </tr>
                 </thead>
                 <tbody>
                   {chartData.labels.map((label, idx) => (
-                    <tr key={label}>
-                      <td className="px-2 py-1 border-b border-gray-100">{label}</td>
-                      <td className="px-2 py-1 border-b border-gray-100">{chartData.datasets[0].data[idx]}</td>
+                    <tr key={label} className={darkMode ? 'bg-[#181818] text-white' : 'bg-white text-gray-900'}>
+                      <td className={`px-2 py-1 border-b ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>{label}</td>
+                      <td className={`px-2 py-1 border-b ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>{chartData.datasets[0].data[idx]}</td>
                     </tr>
                   ))}
                 </tbody>
