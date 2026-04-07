@@ -2,41 +2,103 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: get the requesting user's role from their Firestore doc
-    function userRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
-    }
-
-    function isAdmin() {
-      return userRole() == 'admin';
-    }
+    // --- Helpers ---
 
     function isAuthenticated() {
       return request.auth != null;
     }
 
+    function callerDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && callerDoc().role == 'admin';
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // --- Data validation helpers ---
+
+    function validUserData(data) {
+      return data.keys().hasAll(['name', 'email', 'role', 'authProvider', 'createdAt'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.email is string && data.email.size() > 0
+        && data.role in ['admin', 'staff']
+        && data.authProvider in ['email', 'google'];
+    }
+
+    function validAreaData(data) {
+      return data.keys().hasAll(['name', 'id'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 20;
+    }
+
+    function validInventoryData(data) {
+      return data.keys().hasAll(['item_name', 'area'])
+        && data.item_name is string && data.item_name.size() > 0 && data.item_name.size() <= 100
+        && data.area is string && data.area.size() > 0
+        && (!('purchasePar' in data) || (data.purchasePar is number && data.purchasePar >= 0))
+        && (!('areaCount' in data) || (data.areaCount is number && data.areaCount >= 0));
+    }
+
+    function validOrderData(data) {
+      return data.keys().hasAll(['date', 'items', 'totalQuantity'])
+        && data.date is string
+        && data.items is list
+        && data.totalQuantity is number && data.totalQuantity >= 0;
+    }
+
     // --- Users collection ---
     match /users/{userId} {
+      // Anyone authenticated can read user list (needed for settings page)
       allow read: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated() && isAdmin();
+
+      // Only admins can create users; data must be valid
+      allow create: if isAdmin() && validUserData(request.resource.data);
+
+      // Admin can update any user; users can update their own doc
+      // But role and createdAt are immutable (only admin can change role)
+      allow update: if isAdmin()
+          && validUserData(request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt
+        || isOwner(userId)
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.email == resource.data.email
+          && request.resource.data.createdAt == resource.data.createdAt;
+
+      // Only admins can delete users
+      allow delete: if isAdmin();
     }
 
     // --- Areas collection ---
     match /areas/{areaId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow delete: if isAuthenticated() && isAdmin();
+
+      // Both roles can create areas; validate data shape
+      allow create: if isAuthenticated() && validAreaData(request.resource.data);
+
+      // Only admins can delete areas
+      allow delete: if isAdmin();
+
+      // No updates to areas (name is fixed after creation)
+      allow update: if false;
     }
 
     // --- Inventory collection ---
     match /inventory/{itemId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && validInventoryData(request.resource.data);
+      allow update: if isAuthenticated() && validInventoryData(request.resource.data);
+      allow delete: if isAuthenticated();
     }
 
-    // --- Order History collection (append-only) ---
+    // --- Order History collection (append-only audit log) ---
     match /orderHistory/{orderId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && validOrderData(request.resource.data);
+      // No updates or deletes — this is an immutable audit trail
       allow update, delete: if false;
     }
   }
