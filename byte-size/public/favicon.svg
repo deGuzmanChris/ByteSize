@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-11 -11 27 22" width="32" height="32">
+  <!-- Cookie body with bite taken out of right side -->
+  <path
+    d="M 8 -6 A 10 10 0 1 0 8 6 A 6 6 0 0 1 8 -6 Z"
+    fill="#D4A05C"
+    stroke="#A0722A"
+    stroke-width="1"
+    stroke-linejoin="round"
+  />
+  <!-- Chocolate chips -->
+  <circle cx="-3" cy="-3" r="1.2" fill="#5C3317" />
+  <circle cx="0"  cy="3"  r="1.1" fill="#5C3317" />
+  <circle cx="-6" cy="2"  r="1.1" fill="#5C3317" />
+  <circle cx="-1" cy="7"  r="1"   fill="#5C3317" />
+  <circle cx="3"  cy="5"  r="1"   fill="#5C3317" />
+  <circle cx="-6" cy="-7" r="1.1" fill="#5C3317" />
+</svg>
