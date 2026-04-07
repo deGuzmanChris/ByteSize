@@ -18,6 +18,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [captchaToken, setCaptchaToken] = useState(null);
+  const [loginError, setLoginError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({ email: "", password: "" });
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMsg, setForgotMsg] = useState({ text: "", type: "" });
@@ -25,13 +27,14 @@ export default function LoginPage() {
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   const handleGoogleSignIn = async () => {
+    setLoginError("");
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       const employee = await getUserByEmail(user.email);
       if (!employee) {
         await signOut(auth);
-        alert("Access denied. Your Google account is not registered as an employee. Please contact your manager.");
+        setLoginError("Access denied. Your Google account is not registered as an employee. Please contact your manager.");
         return;
       }
       const token = await user.getIdToken();
@@ -39,14 +42,33 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (error) {
       console.error(error);
-      alert("Google Sign-In failed");
+      setLoginError("Google Sign-In failed. Please try again.");
     }
+  };
+
+  const validateForm = () => {
+    const errors = { email: "", password: "" };
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) {
+      errors.email = "Email is required.";
+    } else if (!emailRegex.test(email.trim())) {
+      errors.email = "Please enter a valid email address.";
+    }
+    if (!password) {
+      errors.password = "Password is required.";
+    } else if (password.length < 6) {
+      errors.password = "Password must be at least 6 characters.";
+    }
+    setFieldErrors(errors);
+    return !errors.email && !errors.password;
   };
 
   const handleEmailSignIn = async (e) => {
     e.preventDefault();
+    setLoginError("");
+    if (!validateForm()) return;
     if (recaptchaSiteKey && !captchaToken) {
-      alert("Please complete the CAPTCHA.");
+      setLoginError("Please complete the CAPTCHA.");
       return;
     }
     try {
@@ -56,13 +78,19 @@ export default function LoginPage() {
       setAuthCookie(token);
       router.push("/dashboard");
     } catch (error) {
-      console.error("Email Sign-In Error:", error);
-      if (error.code === "auth/user-not-found") {
-        alert("No account found. Please contact a manager to create your account.");
-      } else if (error.code === "auth/wrong-password") {
-        alert("Incorrect password. Please try again.");
+      const knownCodes = [
+        "auth/invalid-credential",
+        "auth/user-not-found",
+        "auth/wrong-password",
+        "auth/too-many-requests",
+      ];
+      if (!knownCodes.includes(error.code)) {
+        console.error("Unexpected sign-in error:", error);
+      }
+      if (error.code === "auth/too-many-requests") {
+        setLoginError("Too many failed attempts. Please wait a moment before trying again.");
       } else {
-        alert(error.message);
+        setLoginError("Invalid email or password. Please try again.");
       }
     }
   };
@@ -115,24 +143,40 @@ export default function LoginPage() {
               <label className="block text-sm font-semibold mb-2">Email</label>
               <input
                 type="email"
-                required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`w-full p-3 rounded-lg border ${tokens.sidebarBorder} ${tokens.text} ${darkMode ? "bg-[#393939]" : "bg-white"} focus:outline-none focus:ring-2 focus:ring-[#89986D]`}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: "" }));
+                }}
+                className={`w-full p-3 rounded-lg border ${fieldErrors.email ? "border-red-400 focus:ring-red-400" : `${tokens.sidebarBorder} focus:ring-[#89986D]`} ${tokens.text} ${darkMode ? "bg-[#393939]" : "bg-white"} focus:outline-none focus:ring-2`}
                 placeholder="yourname@example.com"
               />
+              {fieldErrors.email && (
+                <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
+              )}
             </div>
             <div className="mb-4 text-left">
               <label className="block text-sm font-semibold mb-2">Password</label>
               <input
                 type="password"
-                required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`w-full px-3 py-2 border ${tokens.sidebarBorder} rounded ${tokens.text} ${darkMode ? "bg-[#393939]" : "bg-white"} focus:outline-none focus:ring-2 focus:ring-[#89986D]`}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: "" }));
+                }}
+                className={`w-full px-3 py-2 border ${fieldErrors.password ? "border-red-400 focus:ring-red-400" : `${tokens.sidebarBorder} focus:ring-[#89986D]`} rounded ${tokens.text} ${darkMode ? "bg-[#393939]" : "bg-white"} focus:outline-none focus:ring-2`}
                 placeholder="••••••••••"
               />
+              {fieldErrors.password && (
+                <p className="text-red-500 text-xs mt-1">{fieldErrors.password}</p>
+              )}
             </div>
+            {loginError && (
+              <div className="flex items-start gap-2 mb-3 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm text-left">
+                <span className="mt-0.5 shrink-0">⚠</span>
+                <span>{loginError}</span>
+              </div>
+            )}
             {recaptchaSiteKey && (
               <div className="flex justify-center mb-2">
                 <ReCAPTCHA
