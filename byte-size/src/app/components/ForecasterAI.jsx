@@ -319,7 +319,7 @@ export default function ForecasterAI() {
           {chartData && chartData.labels && chartData.labels.length > 0 && (
             <div className="mb-4">
               <strong>Infographic:</strong>
-              <table className={`min-w-[200px] mt-2 border ${darkMode ? 'border-gray-600' : 'border-gray-200'} text-sm`}>
+              <table className={`min-w-50 mt-2 border ${darkMode ? 'border-gray-600' : 'border-gray-200'} text-sm`}>
                 <thead>
                   <tr className={darkMode ? 'bg-[#222] text-white' : 'bg-gray-100 text-gray-900'}>
                     <th className={`px-2 py-1 border-b ${darkMode ? 'border-gray-600' : 'border-gray-200'} text-left`}>Item</th>
