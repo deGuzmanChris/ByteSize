@@ -163,9 +163,9 @@ export default function ForecasterAI() {
 
     Format example:
     Infographic:
-    Item1: Qty
-    Item2: Qty
-    ...
+    Bread: 20
+    Milk: 12
+    Eggs: 30
 
     Upcoming Holidays:
     Holiday1, Holiday2, ...
@@ -177,7 +177,8 @@ export default function ForecasterAI() {
 
       const text = await generateForecast(prompt);
       setResponse(text);
-      setChartData(extractChartData(text));
+      const chart = extractChartData(text);
+      setChartData(chart);
       setHolidays(extractHolidays(text));
       setDetailedReasoning(extractReasoning(text));
     } catch (err) {
@@ -278,34 +279,40 @@ export default function ForecasterAI() {
       )}
 
       {/* Infographic Display */}
-      {displayMode === "infographic" && chartData && (
+      {displayMode === "infographic" && (
         <div className="mt-6 p-4 rounded-lg bg-white">
           <h3 className="font-semibold mb-2 text-gray-800">Forecast Chart</h3>
-          <Bar data={chartData} options={{
-            responsive: true,
-            plugins: {
-              legend: { display: false },
-              title: { display: false },
-            },
-            scales: {
-              x: {
-                title: { display: true, text: "Item" },
-                ticks: {
-                  maxRotation: 0,
-                  minRotation: 0,
-                  callback: function(value, index) {
-                    return chartData.labels[index] || '';
-                  }
+          {chartData && chartData.labels && chartData.labels.length > 0 ? (
+            <>
+              <Bar data={chartData} options={{
+                responsive: true,
+                plugins: {
+                  legend: { display: false },
+                  title: { display: false },
                 },
-              },
-              y: { title: { display: true, text: "Forecasted Qty" }, beginAtZero: true },
-            },
-          }} />
-          {/* Show holidays below chart if any */}
-          {holidays.length > 0 && (
-            <div className="mt-4 text-sm text-gray-700">
-              <strong>Upcoming Holidays:</strong> {holidays.join(", ")}
-            </div>
+                scales: {
+                  x: {
+                    title: { display: true, text: "Item" },
+                    ticks: {
+                      maxRotation: 0,
+                      minRotation: 0,
+                      callback: function(value, index) {
+                        return chartData.labels[index] || '';
+                      }
+                    },
+                  },
+                  y: { title: { display: true, text: "Forecasted Qty" }, beginAtZero: true },
+                },
+              }} />
+              {/* Show holidays below chart if any */}
+              {holidays.length > 0 && (
+                <div className="mt-4 text-sm text-gray-700">
+                  <strong>Upcoming Holidays:</strong> {holidays.join(", ")}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-gray-500 italic">No chart data was generated. Please check your input or try rephrasing your special circumstances.</div>
           )}
         </div>
       )}
