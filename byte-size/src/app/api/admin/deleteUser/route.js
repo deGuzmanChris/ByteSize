@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import admin from "../../../../lib/firebaseAdmin";
+import getAdmin from "../../../../lib/firebaseAdmin";
 
 export async function POST(request) {
   try {
+    const admin = getAdmin();
+
     // Verify the caller is authenticated and is an admin
     const authHeader = request.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -19,7 +21,6 @@ export async function POST(request) {
     }
 
     const { uid } = await request.json();
-
     if (!uid) {
       return NextResponse.json({ error: "uid is required" }, { status: 400 });
     }
