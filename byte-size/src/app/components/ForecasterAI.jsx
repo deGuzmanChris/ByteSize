@@ -48,6 +48,7 @@ export default function ForecasterAI() {
   const [holidays, setHolidays] = useState([]);
   const [detailedReasoning, setDetailedReasoning] = useState("");
   const [displayMode, setDisplayMode] = useState("infographic"); // 'infographic' or 'detailed'
+  const [hasGenerated, setHasGenerated] = useState(false);
 
   // Extract holidays from AI response (looks for a section like 'Upcoming Holidays: ...')
   function extractHolidays(text) {
@@ -120,6 +121,7 @@ export default function ForecasterAI() {
     setLoading(true);
     setError("");
     setResponse("");
+    setHasGenerated(true);
 
     try {
       // Fetch data from Firebase
@@ -181,6 +183,20 @@ export default function ForecasterAI() {
       setChartData(chart);
       setHolidays(extractHolidays(text));
       setDetailedReasoning(extractReasoning(text));
+
+      // Store forecast in Firestore with expiry
+      try {
+        await fetch("/api/forecast", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            input: { timeRange, focus, volume, notes },
+            result: { chartData: chart, reasoning: extractReasoning(text), holidays: extractHolidays(text) },
+          }),
+        });
+      } catch (e) {
+        // Optionally handle/log error
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to generate forecast. Please try again.");
@@ -279,65 +295,91 @@ export default function ForecasterAI() {
       )}
 
       {/* Infographic Display */}
-      {displayMode === "infographic" && (
-        <div className="mt-6 p-4 rounded-lg bg-white">
-          <h3 className="font-semibold mb-2 text-gray-800">Forecast Chart</h3>
+      {displayMode === "infographic" && hasGenerated && (
+        <div className={`mt-6 p-4 rounded-xl shadow border ${darkMode ? "border-white" : "border-black"} ${tokens.cardBg} ${darkMode ? 'text-white' : ''}`}>
+          <h3 className={`font-semibold mb-2 ${darkMode ? 'text-white' : tokens.text}`}>Forecast Chart</h3>
           {chartData && chartData.labels && chartData.labels.length > 0 ? (
-            <>
-              <Bar data={chartData} options={{
-                responsive: true,
-                plugins: {
-                  legend: { display: false },
-                  title: { display: false },
-                },
-                scales: {
-                  x: {
-                    title: { display: true, text: "Item" },
-                    ticks: {
-                      maxRotation: 0,
-                      minRotation: 0,
-                      callback: function(value, index) {
-                        return chartData.labels[index] || '';
-                      }
+              <Bar
+                data={{
+                  ...chartData,
+                  datasets: [
+                    {
+                      ...chartData.datasets[0],
+                      backgroundColor: darkMode ? "#b6d094" : "#8fa481",
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: { display: false },
+                    title: { display: false },
+                  },
+                  scales: {
+                    x: {
+                      title: {
+                        display: true,
+                        text: "Item",
+                        color: darkMode ? '#fff' : undefined,
+                      },
+                      ticks: {
+                        color: darkMode ? '#fff' : undefined,
+                        maxRotation: 0,
+                        minRotation: 0,
+                        callback: function(value, index) {
+                          return chartData.labels[index] || '';
+                        }
+                      },
+                    },
+                    y: {
+                      title: {
+                        display: true,
+                        text: "Forecasted Qty",
+                        color: darkMode ? '#fff' : undefined,
+                      },
+                      ticks: {
+                        color: darkMode ? '#fff' : undefined,
+                      },
+                      beginAtZero: true
                     },
                   },
-                  y: { title: { display: true, text: "Forecasted Qty" }, beginAtZero: true },
-                },
-              }} />
-              {/* Show holidays below chart if any */}
-              {holidays.length > 0 && (
-                <div className="mt-4 text-sm text-gray-700">
-                  <strong>Upcoming Holidays:</strong> {holidays.join(", ")}
-                </div>
-              )}
-            </>
+                }}
+              />
           ) : (
-            <div className="text-gray-500 italic">No chart data was generated. Please check your input or try rephrasing your special circumstances.</div>
+            <div className="flex flex-col items-center justify-center min-h-50 text-gray-400">
+              <span>No forecast data available. Please adjust your inputs and try again.</span>
+            </div>
+          )}
+          {/* Show holidays below chart if any */}
+          {holidays.length > 0 && (
+            <div className={`mt-4 text-sm ${tokens.text}`}>
+              <strong>Upcoming Holidays:</strong> {holidays.join(", ")}
+            </div>
           )}
         </div>
       )}
 
       {/* Detailed Display */}
-      {displayMode === "detailed" && (
+      {displayMode === "detailed" && hasGenerated && (
         <div className={`mt-6 p-4 rounded-xl shadow border ${darkMode ? "border-white" : "border-black"} ${tokens.forecastDetailBg} ${tokens.forecastDetailText}`}>
           <h3 className={`font-semibold mb-2 ${tokens.forecastDetailText}`}>Forecast Details</h3>
 
-          {/* Infographic Table */}
+          {/* Infographic Chart (same as infographic mode) */}
           {chartData && chartData.labels && chartData.labels.length > 0 && (
             <div className="mb-4">
               <strong>Infographic:</strong>
-              <table className={`min-w-50 mt-2 border ${darkMode ? 'border-gray-600' : 'border-gray-200'} text-sm`}>
+              <table className={`min-w-50 mt-2 border text-sm w-full ${darkMode ? 'border-white' : 'border-black'}`}> 
                 <thead>
                   <tr className={darkMode ? 'bg-[#222] text-white' : 'bg-gray-100 text-gray-900'}>
-                    <th className={`px-2 py-1 border-b ${darkMode ? 'border-gray-600' : 'border-gray-200'} text-left`}>Item</th>
-                    <th className={`px-2 py-1 border-b ${darkMode ? 'border-gray-600' : 'border-gray-200'} text-left`}>Forecasted Qty</th>
+                    <th className={`px-2 py-1 border-b border-r text-left ${darkMode ? 'border-white' : 'border-black'}`}>Item</th>
+                    <th className={`px-2 py-1 border-b text-left ${darkMode ? 'border-white' : 'border-black'}`}>Forecasted Qty</th>
                   </tr>
                 </thead>
                 <tbody>
                   {chartData.labels.map((label, idx) => (
                     <tr key={label} className={darkMode ? 'bg-[#181818] text-white' : 'bg-white text-gray-900'}>
-                      <td className={`px-2 py-1 border-b ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>{label}</td>
-                      <td className={`px-2 py-1 border-b ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>{chartData.datasets[0].data[idx]}</td>
+                      <td className={`px-2 py-1 border-b border-r ${darkMode ? 'border-white' : 'border-black'}`}>{label}</td>
+                      <td className={`px-2 py-1 border-b ${darkMode ? 'border-white' : 'border-black'}`}>{chartData.datasets[0].data[idx]}</td>
                     </tr>
                   ))}
                 </tbody>
