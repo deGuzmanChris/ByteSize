@@ -1,22 +1,7 @@
+
 "use client";
 
-import { useState } from "react";
-import React from "react";
-  // Helper to format markdown-like text to HTML for the detailed reasoning
-  function formatReasoning(text) {
-    if (!text) return "";
-    // Convert **bold**
-    let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // Convert numbered lists
-    html = html.replace(/\n(\d+)\. /g, '<br/><span class="font-bold">$1.</span> ');
-    // Convert bullets (replace asterisk with dash, including at start of string)
-    html = html.replace(/(^|\n)\* /g, '$1- ');
-    // Convert newlines to paragraphs (for double newlines)
-    html = html.replace(/\n{2,}/g, '<br/><br/>');
-    // Convert single newlines to <br/>
-    html = html.replace(/\n/g, '<br/>');
-    return html;
-  }
+import React, { useState, useEffect } from "react";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -27,13 +12,102 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 import { generateForecast } from "@/lib/gemini";
 import { getInventoryItems } from "@/lib/inventory";
 import { getOrderHistory } from "@/lib/orderHistory";
 import { useDarkMode } from "@/lib/DarkModeContext";
 import { getColorTokens } from "./colorTokens";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+// Helper to format markdown-like text to HTML for the detailed reasoning
+function formatReasoning(text) {
+  if (!text) return "";
+  // Convert **bold**
+  let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  // Convert numbered lists
+  html = html.replace(/\n(\d+)\. /g, '<br/><span class=\"font-bold\">$1.</span> ');
+  // Convert bullets (replace asterisk with dash, including at start of string)
+  html = html.replace(/(^|\n)\* /g, '$1- ');
+  // Convert newlines to paragraphs (for double newlines)
+  html = html.replace(/\n{2,}/g, '<br/><br/>');
+  // Convert single newlines to <br/>
+  html = html.replace(/\n/g, '<br/>');
+  return html;
+}
+
+function extractHolidays(text) {
+  const match = text.match(/Upcoming Holidays:(.*?)(?:\n\n|$)/is);
+  if (match) {
+    return match[1]
+      .split(/\n|,/)
+      .map((holiday) => holiday.trim())
+      .filter((holiday) => holiday.length > 0);
+  }
+  return [];
+}
+
+function extractReasoning(text) {
+  const match = text.match(/Reasoning:(.*)/is);
+  if (match) {
+    return match[1].trim();
+  }
+  return "";
+}
+
+function extractChartData(text) {
+  const infographicMatch = text.match(/Infographic:(.*?)(?:\n\s*Upcoming Holidays:|\n\s*Reasoning:|$)/is);
+  if (!infographicMatch) return null;
+
+  const itemMap = {};
+  const lines = infographicMatch[1].split("\n");
+
+  lines.forEach((line) => {
+    const cleanLine = line.replace(/^[*\s]+|[*\s]+$/g, "");
+    if (!cleanLine) return;
+    if (/^(#|Current|Inventory|Forecast|Total|Summary|\d+\sitems?)/i.test(cleanLine)) return;
+
+    const match = cleanLine.match(/^(?:- )?(.*?):\s*(\d+(?:\.\d+)?)/);
+    if (!match) return;
+
+    const label = match[1].replace(/[*]+/g, "").trim();
+    if (/^current$/i.test(label)) return;
+
+    const quantity = Number(match[2]);
+    if (Number.isNaN(quantity)) return;
+
+    itemMap[label] = (itemMap[label] || 0) + quantity;
+  });
+
+  const labels = Object.keys(itemMap);
+  if (labels.length === 0) return null;
+
+  return {
+    labels,
+    datasets: [
+      {
+        label: "Forecasted Qty",
+        data: labels.map((label) => Math.floor(itemMap[label])),
+        backgroundColor: "#8fa481",
+      },
+    ],
+  };
+}
+
+function getSavedForecastState(forecast) {
+  const result = forecast?.result || {};
+  const rawText = result.response || result.text || forecast?.response || "";
+  const chartData = result.chartData || (rawText ? extractChartData(rawText) : null);
+  const reasoning = result.reasoning || (rawText ? extractReasoning(rawText) : "");
+  const holidays = result.holidays || (rawText ? extractHolidays(rawText) : []);
+
+  return {
+    chartData,
+    holidays,
+    reasoning,
+    response: rawText,
+  };
+}
 
 export default function ForecasterAI() {
   const { darkMode } = useDarkMode();
@@ -49,79 +123,66 @@ export default function ForecasterAI() {
   const [detailedReasoning, setDetailedReasoning] = useState("");
   const [displayMode, setDisplayMode] = useState("infographic"); // 'infographic' or 'detailed'
   const [hasGenerated, setHasGenerated] = useState(false);
-
-  // Extract holidays from AI response (looks for a section like 'Upcoming Holidays: ...')
-  function extractHolidays(text) {
-    const match = text.match(/Upcoming Holidays:(.*?)(?:\n\n|$)/is);
-    if (match) {
-      return match[1]
-        .split(/\n|,/)
-        .map(h => h.trim())
-        .filter(h => h.length > 0);
-    }
-    return [];
-  }
-
-  // Extract detailed reasoning from AI response (looks for a section like 'Reasoning: ...')
-  function extractReasoning(text) {
-    const match = text.match(/Reasoning:(.*)/is);
-    if (match) {
-      return match[1].trim();
-    }
-    return "";
-  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Helper to extract chart data from forecast response (simple example: expects lines like 'Item: X, Forecast: Y')
-  function extractChartData(text) {
-    // Only parse the Infographic section
-    const infographicMatch = text.match(/Infographic:(.*?)(?:\n\s*Upcoming Holidays:|\n\s*Reasoning:|$)/is);
-    if (!infographicMatch) return null;
-    const lines = infographicMatch[1].split("\n");
-    const itemMap = {};
-    lines.forEach((line) => {
-      let cleanLine = line.replace(/^[*\s]+|[*\s]+$/g, "");
-      if (!cleanLine) return;
-      // Ignore section headers or summary lines
-      if (/^(#|Current|Inventory|Forecast|Total|Summary|\d+\sitems?)/i.test(cleanLine)) return;
-      const match = cleanLine.match(/^(?:- )?(.*?):\s*(\d+(?:\.\d+)?)/);
-      if (match) {
-        let cleanLabel = match[1].replace(/[*]+/g, "").trim();
-        // Filter out 'Current' as a label
-        if (/^current$/i.test(cleanLabel)) return;
-        const qty = Number(match[2]);
-        if (!isNaN(qty)) {
-          if (cleanLabel in itemMap) {
-            itemMap[cleanLabel] += qty;
-          } else {
-            itemMap[cleanLabel] = qty;
-          }
-        }
-      }
+  async function loadSavedForecast() {
+    const params = new URLSearchParams({ userId: "anonymous" });
+    const res = await fetch(`/api/forecast?${params.toString()}`, {
+      cache: "no-store",
     });
-    const labels = Object.keys(itemMap);
-    const data = labels.map(label => Math.floor(itemMap[label]));
-    if (labels.length && data.length) {
-      return {
-        labels,
-        datasets: [
-          {
-            label: "Forecasted Qty",
-            data,
-            backgroundColor: "#8fa481",
-          },
-        ],
-      };
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to load saved forecast.");
     }
-    return null;
+
+    if (!data.success || !data.forecast) {
+      setHasGenerated(false);
+      return null;
+    }
+
+    const savedInput = data.forecast.input || {};
+    const savedForecast = getSavedForecastState(data.forecast);
+
+    setTimeRange(savedInput.timeRange || "7");
+    setFocus(savedInput.focus || "all");
+    setVolume(savedInput.volume || "normal");
+    setNotes(savedInput.notes || "");
+    setHasGenerated(true);
+    setResponse(savedForecast.response);
+    setChartData(savedForecast.chartData);
+    setDetailedReasoning(savedForecast.reasoning);
+    setHolidays(savedForecast.holidays);
+
+    return data.forecast;
   }
 
+  // Load latest forecast on mount
+  useEffect(() => {
+    async function fetchForecast() {
+      try {
+        await loadSavedForecast();
+      } catch (e) {
+        setError("Failed to load saved forecast.");
+      }
+    }
+    fetchForecast();
+    // Only run on mount (not on input change)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleGenerate() {
+    const previousState = {
+      chartData,
+      detailedReasoning,
+      hasGenerated,
+      holidays,
+      response,
+    };
+
     setLoading(true);
     setError("");
-    setResponse("");
-    setHasGenerated(true);
 
     try {
       // Fetch data from Firebase
@@ -199,7 +260,18 @@ export default function ForecasterAI() {
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to generate forecast. Please try again.");
+      setChartData(previousState.chartData);
+      setDetailedReasoning(previousState.detailedReasoning);
+      setHasGenerated(previousState.hasGenerated);
+      setHolidays(previousState.holidays);
+      setResponse(previousState.response);
+
+      try {
+        await loadSavedForecast();
+        setError("Failed to generate a new forecast. Showing the latest saved forecast.");
+      } catch {
+        setError("Failed to generate forecast. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
