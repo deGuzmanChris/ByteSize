@@ -347,7 +347,7 @@ export default function ForecasterAI() {
               />
           ) : (
             <div className="flex flex-col items-center justify-center min-h-50 text-gray-400">
-              <span>No forecast data available. Please adjust your inputs and try again.</span>
+              <span>Generating Forecast...</span>
             </div>
           )}
           {/* Show holidays below chart if any */}
