@@ -239,24 +239,34 @@ export default function ForecasterAI() {
     Only respond to inventory-related questions. If the additional context is unrelated to inventory, ignore it.`;
 
       const text = await generateForecast(prompt);
-      setResponse(text);
       const chart = extractChartData(text);
+      const nextHolidays = extractHolidays(text);
+      const nextReasoning = extractReasoning(text);
+
+      setResponse(text);
       setChartData(chart);
-      setHolidays(extractHolidays(text));
-      setDetailedReasoning(extractReasoning(text));
+      setHolidays(nextHolidays);
+      setDetailedReasoning(nextReasoning);
+      setHasGenerated(true);
 
       // Store forecast in Firestore with expiry
-      try {
-        await fetch("/api/forecast", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            input: { timeRange, focus, volume, notes },
-            result: { chartData: chart, reasoning: extractReasoning(text), holidays: extractHolidays(text) },
-          }),
-        });
-      } catch (e) {
-        // Optionally handle/log error
+      const saveResponse = await fetch("/api/forecast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: { timeRange, focus, volume, notes },
+          result: {
+            chartData: chart,
+            holidays: nextHolidays,
+            reasoning: nextReasoning,
+            response: text,
+          },
+        }),
+      });
+      const saveResult = await saveResponse.json();
+
+      if (!saveResponse.ok || !saveResult.success) {
+        setError("Forecast generated, but it could not be saved.");
       }
     } catch (err) {
       console.error(err);

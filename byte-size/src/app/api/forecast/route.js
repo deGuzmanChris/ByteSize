@@ -1,5 +1,4 @@
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
+import { Timestamp } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
 import getAdmin from "@/lib/firebaseAdmin";
 
@@ -68,18 +67,9 @@ export async function POST(req) {
     const orderedInput = normalizeForecastInput(input);
     const inputKey = JSON.stringify({ userId, ...orderedInput });
     const forecastsRef = db.collection("forecasts");
-    const existing = await forecastsRef
-      .where("userId", "==", userId)
-      .where("inputKey", "==", inputKey)
-      .get();
-
-    if (!existing.empty) {
-      await Promise.all(existing.docs.map((doc) => doc.ref.delete()));
-    }
-
     const docRef = await forecastsRef.add({
       userId,
-      input,
+      input: orderedInput,
       inputKey,
       result,
       createdAt: Timestamp.fromDate(now),
