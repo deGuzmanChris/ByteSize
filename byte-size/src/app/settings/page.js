@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createUser, getUsers, updateUserDoc, deleteUserDoc } from "../../lib/users";
 import { auth } from "../../lib/firebase";
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
+import Modal from "../components/Modal";
 
 const ASSIGNABLE_ROLES = {
   admin: ["staff", "admin"],
@@ -12,6 +13,7 @@ const ASSIGNABLE_ROLES = {
 
 export default function SettingsPage({ currentRole }) {
   const { darkMode } = useDarkMode();
+  const userFormSectionRef = useRef(null);
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({ name: "", email: "", role: "staff" });
 
@@ -40,6 +42,7 @@ export default function SettingsPage({ currentRole }) {
   const [editingId, setEditingId] = useState(null);
   const [notice, setNotice] = useState({ text: "", type: "success" });
   const [loading, setLoading] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   // Use shared color tokens
   const tokens = getColorTokens(darkMode);
@@ -96,6 +99,10 @@ export default function SettingsPage({ currentRole }) {
     setEditingId(user.id);
     setForm({ name: user.name, email: user.email, role: user.role });
     setNotice({ text: "", type: "success" });
+
+    requestAnimationFrame(() => {
+      userFormSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   async function handleUpdate(e) {
@@ -117,8 +124,8 @@ export default function SettingsPage({ currentRole }) {
     }
   }
 
-  async function handleDelete(user) {
-    if (!confirm(`Delete ${user.name}? This cannot be undone.`)) return;
+  async function handleDelete() {
+    if (!userToDelete) return;
     setLoading(true);
     try {
       const idToken = await auth.currentUser.getIdToken();
@@ -128,15 +135,16 @@ export default function SettingsPage({ currentRole }) {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ uid: user.id }),
+        body: JSON.stringify({ uid: userToDelete.id }),
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Auth deletion failed");
       }
-      await deleteUserDoc(user.id);
-      showNotice(`${user.name} has been deleted.`);
-      if (editingId === user.id) resetForm();
+      await deleteUserDoc(userToDelete.id);
+      showNotice(`${userToDelete.name} has been deleted.`);
+      if (editingId === userToDelete.id) resetForm();
+      setUserToDelete(null);
       await fetchUsers();
     } catch (err) {
       showNotice("Error deleting user: " + err.message, "error");
@@ -151,7 +159,11 @@ export default function SettingsPage({ currentRole }) {
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
       {isAdmin && (
-        <div className={`${tokens.sectionBg} rounded-xl shadow p-6 mb-6 transition-colors duration-200`}>
+        <div
+          ref={userFormSectionRef}
+          className={`${tokens.sectionBg} rounded-xl shadow p-6 mb-6 transition-colors duration-200`}
+          style={{ scrollMarginTop: "5.5rem" }}
+        >
           <h2 className="text-lg font-semibold mb-1">
             {editingId ? "Edit User" : "Create New User"}
           </h2>
@@ -260,9 +272,9 @@ export default function SettingsPage({ currentRole }) {
                     )}
                     {canManage(user.role) && (
                       <button
-                        onClick={() => handleDelete(user)}
+                        onClick={() => setUserToDelete(user)}
                         disabled={loading}
-                        className="min-h-7 px-1.5 py-0 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50 sm:min-h-0"
+                        className="min-h-7 px-1.5 py-0 text-xs bg-[#d9534f] text-white rounded hover:bg-[#c9302c] disabled:opacity-50 sm:min-h-0"
                       >
                         Delete
                       </button>
@@ -274,6 +286,36 @@ export default function SettingsPage({ currentRole }) {
           </div>
         )}
       </div>
+
+      {userToDelete && (
+        <Modal
+          darkMode={darkMode}
+          title="Delete User"
+          onClose={() => !loading && setUserToDelete(null)}
+        >
+          <p className={`mb-4 text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+            Are you sure want to delete this user?
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setUserToDelete(null)}
+              disabled={loading}
+              className={tokens.cancelBtn}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={loading}
+              className="px-4 py-2 rounded bg-[#d9534f] text-white hover:bg-[#c9302c] disabled:opacity-50"
+            >
+              {loading ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
