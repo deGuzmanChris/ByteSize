@@ -58,7 +58,7 @@ export default function OrderPage() {
   const totalNeed = useMemo(() => rows.reduce((sum, r) => sum + r.need, 0), [rows]);
 
   return (
-    <section>
+    <section style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
       {/* Header */}
       <div className="mb-6 flex items-center justify-between gap-2">
         <h1 className={`text-2xl font-bold ${text}`}>Ordering</h1>
@@ -117,7 +117,7 @@ export default function OrderPage() {
                           pattern="[0-9]*"
                           value={String(r.pp)}
                           onChange={(e) => updatePP(r.id, e.target.value)}
-                          className={`${inputCls} mt-1 w-full`}
+                          className={`${inputCls} mt-1 w-full min-h-11`}
                         />
                       </label>
                       <label className={`text-xs ${mutedText}`}>
@@ -127,7 +127,7 @@ export default function OrderPage() {
                           pattern="[0-9]*"
                           value={String(r.ac)}
                           onChange={(e) => updateAC(r.id, e.target.value)}
-                          className={`${inputCls} mt-1 w-full`}
+                          className={`${inputCls} mt-1 w-full min-h-11`}
                         />
                       </label>
                     </div>

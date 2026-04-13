@@ -18,6 +18,25 @@ export default function SettingsPage({ currentRole }) {
   const isAdmin = currentRole === "admin";
   const assignableRoles = ASSIGNABLE_ROLES[currentRole] ?? [];
   const canManage = (targetRole) => assignableRoles.includes(targetRole);
+  const getRoleBadgeCls = (role) => {
+    const roleKey = String(role || "").toLowerCase();
+
+    if (roleKey === "admin") {
+      return darkMode
+        ? "text-xs px-2 py-0.5 rounded-full bg-[#1e3a5f] text-[#93c5fd] capitalize"
+        : "text-xs px-2 py-0.5 rounded-full bg-[#dbeafe] text-[#1d4ed8] capitalize";
+    }
+
+    if (roleKey === "staff") {
+      return darkMode
+        ? "text-xs px-2 py-0.5 rounded-full bg-[#1f4d2e] text-[#86efac] capitalize"
+        : "text-xs px-2 py-0.5 rounded-full bg-[#dcfce7] text-[#166534] capitalize";
+    }
+
+    return darkMode
+      ? "text-xs px-2 py-0.5 rounded-full bg-[#3a3a3a] text-[#d1d5db] capitalize"
+      : "text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 capitalize";
+  };
   const [editingId, setEditingId] = useState(null);
   const [notice, setNotice] = useState({ text: "", type: "success" });
   const [loading, setLoading] = useState(false);
@@ -127,7 +146,10 @@ export default function SettingsPage({ currentRole }) {
   }
 
   return (
-    <div className={`${tokens.text} transition-colors duration-200`}>
+    <div
+      className={`${tokens.text} transition-colors duration-200`}
+      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+    >
       {isAdmin && (
         <div className={`${tokens.sectionBg} rounded-xl shadow p-6 mb-6 transition-colors duration-200`}>
           <h2 className="text-lg font-semibold mb-1">
@@ -209,12 +231,15 @@ export default function SettingsPage({ currentRole }) {
         ) : (
           <div className="space-y-3">
             {users.map((user) => (
-              <div key={user.id} className={tokens.userCardCls}>
-                <div>
-                  <div className="font-medium">{user.name}</div>
-                  <div className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{user.email}</div>
+              <div
+                key={user.id}
+                className={`${tokens.userCardCls} flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between`}
+              >
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{user.name}</div>
+                  <div className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"} truncate`}>{user.email}</div>
                   <div className="flex gap-2 mt-1">
-                    <span className={tokens.roleBadgeCls}>{user.role}</span>
+                    <span className={getRoleBadgeCls(user.role)}>{user.role}</span>
                     {user.mustChangePassword && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
                         Must set password
@@ -223,9 +248,13 @@ export default function SettingsPage({ currentRole }) {
                   </div>
                 </div>
                 {isAdmin && (
-                  <div className="flex gap-2">
+                  <div className="mt-1 flex w-full gap-2 self-start border-t border-black/10 pt-2 dark:border-white/10 sm:mt-0 sm:w-auto sm:self-auto sm:border-0 sm:pt-0">
                     {canManage(user.role) && (
-                      <button onClick={() => handleEditInit(user)} disabled={loading} className={editBtnCls}>
+                      <button
+                        onClick={() => handleEditInit(user)}
+                        disabled={loading}
+                        className={`${editBtnCls} min-h-7 px-1.5 py-0 text-xs sm:min-h-0`}
+                      >
                         Edit
                       </button>
                     )}
@@ -233,7 +262,7 @@ export default function SettingsPage({ currentRole }) {
                       <button
                         onClick={() => handleDelete(user)}
                         disabled={loading}
-                        className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
+                        className="min-h-7 px-1.5 py-0 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50 sm:min-h-0"
                       >
                         Delete
                       </button>

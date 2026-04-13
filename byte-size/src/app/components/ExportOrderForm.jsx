@@ -57,7 +57,7 @@ export default function ExportOrderForm({ rows, notes, disabled, darkMode }) {
     <button
       onClick={exportCsv}
       disabled={disabled}
-      className={`rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap shadow transition-colors sm:px-4 sm:text-base ${
+      className={`min-h-11 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap shadow transition-colors sm:min-h-0 sm:px-4 sm:text-base ${
         darkMode
           ? "bg-[#8fa481] text-white hover:bg-[#7a926e]"
           : "bg-[#8fa481] text-black hover:bg-[#7a926e]"

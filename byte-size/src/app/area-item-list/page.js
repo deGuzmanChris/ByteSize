@@ -118,7 +118,7 @@ export function AreaItemList({ areaName, onBack }) {
   };
 
   return (
-    <section>
+    <section style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between mb-6 gap-2">
         <div className="flex items-center gap-2">
@@ -171,7 +171,7 @@ export function AreaItemList({ areaName, onBack }) {
             <li key={idx}>
               <div className={`${cardBg} ${cardText} rounded-xl shadow-md flex flex-col gap-2 px-4 py-3 transition-colors duration-200 sm:min-h-18 sm:h-18 sm:flex-row sm:items-center sm:py-0`}>
                 <span
-                  className="w-full font-semibold text-base leading-tight wrap-break-word sm:flex-1 sm:min-w-0 sm:truncate"
+                  className="w-full truncate font-semibold text-base leading-tight sm:flex-1 sm:min-w-0"
                   title={item.name}
                 >
                   {item.name}
@@ -180,7 +180,7 @@ export function AreaItemList({ areaName, onBack }) {
                   <input
                     type="number"
                     maxLength={2}
-                    className={`${mainCardBg} ${darkMode ? "text-white" : "text-black"} border-[#555] w-10 h-9 p-1 rounded border focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center placeholder:opacity-60 placeholder:font-semibold sm:h-7`}
+                    className={`${mainCardBg} ${darkMode ? "text-white" : "text-black"} border-[#555] w-10 h-11 p-1 rounded border focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center placeholder:opacity-60 placeholder:font-semibold sm:h-7`}
                     style={{ MozAppearance: "textfield" }}
                     placeholder="Qty"
                     value={(() => {
@@ -196,7 +196,7 @@ export function AreaItemList({ areaName, onBack }) {
                     {item.inventoryUnit || ""}
                   </span>
                   <button
-                    className={`w-14 h-8 rounded transition-colors text-sm mr-1 sm:h-7 ${savedStatus[idx] ? "bg-green-500 text-white" : `${sidebarActiveBg} ${text}`}`}
+                    className={`w-16 h-9 rounded transition-colors text-sm mr-1 sm:w-14 sm:h-7 ${savedStatus[idx] ? "bg-green-500 text-white" : `${sidebarActiveBg} ${text}`}`}
                     onClick={() => handleAreaCountEnter(idx)}
                     title="Enter Quantity"
                   >
@@ -204,28 +204,28 @@ export function AreaItemList({ areaName, onBack }) {
                   </button>
                   <div className="flex items-center gap-1">
                     <button
-                      className={`p-2 ${mainCardBg} border border-[#b7c9a6] text-[#355b2c] rounded-full shadow transition-colors flex items-center justify-center`}
+                      className={`h-9 w-9 p-0 sm:p-2 sm:h-auto sm:w-auto ${mainCardBg} border border-[#b7c9a6] text-[#355b2c] rounded-full shadow transition-colors flex items-center justify-center`}
                       onClick={() => setViewItem(item)}
                       title="View Info"
                       aria-label={`View info for ${item.name}`}
                     >
-                      <FaInfoCircle className="w-5 h-5" />
+                      <FaInfoCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
                     <button
-                      className="p-2 bg-yellow-100 text-yellow-700 rounded-full shadow hover:bg-yellow-200 transition-colors flex items-center justify-center"
+                      className="h-9 w-9 p-0 sm:p-2 sm:h-auto sm:w-auto bg-yellow-100 text-yellow-700 rounded-full shadow hover:bg-yellow-200 transition-colors flex items-center justify-center"
                       onClick={() => setEditItemIdx(idx)}
                       title="Edit Info"
                       aria-label={`Edit ${item.name}`}
                     >
-                      <FaPen className="w-5 h-5" />
+                      <FaPen className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
                     <button
-                      className="p-2 bg-[#d9534f] text-white rounded-full shadow hover:bg-[#c9302c] transition-colors flex items-center justify-center"
+                      className="h-9 w-9 p-0 sm:p-2 sm:h-auto sm:w-auto bg-[#d9534f] text-white rounded-full shadow hover:bg-[#c9302c] transition-colors flex items-center justify-center"
                       onClick={() => setDeleteItemIdx(idx)}
                       title="Delete Item"
                       aria-label={`Delete ${item.name}`}
                     >
-                      <FaTrash className="w-5 h-5" />
+                      <FaTrash className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
                   </div>
                 </div>
