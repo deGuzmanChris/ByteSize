@@ -24,6 +24,8 @@ export default function LoginPage() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMsg, setForgotMsg] = useState({ text: "", type: "" });
 
+  const [showPassword, setShowPassword] = useState(false);
+
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   const handleGoogleSignIn = async () => {
@@ -157,19 +159,44 @@ export default function LoginPage() {
             </div>
             <div className="mb-4 text-left">
               <label className="block text-sm font-semibold mb-2">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: "" }));
-                }}
-                className={`w-full px-3 py-2 border ${fieldErrors.password ? "border-red-400 focus:ring-red-400" : `${tokens.sidebarBorder} focus:ring-[#89986D]`} rounded ${tokens.text} ${darkMode ? "bg-[#393939]" : "bg-white"} focus:outline-none focus:ring-2`}
-                placeholder="••••••••••"
-              />
-              {fieldErrors.password && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.password}</p>
-              )}
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`w-full px-3 py-2 border ${tokens.sidebarBorder} rounded ${tokens.text} ${darkMode ? "bg-[#393939]" : "bg-white"} focus:outline-none focus:ring-2 focus:ring-[#89986D]`}
+                  placeholder="••••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none text-lg font-bold"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4l16 16" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="mb-4 text-right">
+              <button
+                type="button"
+                onClick={() => router.push("/forgot-password")}
+                className="text-sm text-[#89986D] hover:text-[#7a8960] transition-colors"
+              >
+                Forgot password?
+              </button>
             </div>
             {loginError && (
               <div className="flex items-start gap-2 mb-3 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm text-left">
@@ -219,13 +246,6 @@ export default function LoginPage() {
 
           {!showForgot ? (
             <div className="text-center text-xs text-gray-500 mt-4 space-y-1">
-              <button
-                type="button"
-                onClick={() => { setShowForgot(true); setForgotMsg({ text: "", type: "" }); }}
-                className="underline hover:text-[#89986D] transition-colors"
-              >
-                Forgot Password?
-              </button>
               <p>Don&apos;t have an account? Contact your manager.</p>
             </div>
           ) : (

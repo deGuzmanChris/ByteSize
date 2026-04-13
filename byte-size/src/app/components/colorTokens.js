@@ -12,6 +12,9 @@ export function getColorTokens(darkMode) {
       ? "px-4 py-2 bg-[#444] text-[#f0f0f0] rounded hover:bg-[#555] transition-colors"
       : "px-4 py-2 bg-[#d1d5db] text-black rounded hover:bg-gray-400 transition-colors",
     sectionBg: darkMode ? "bg-[#232323]" : "bg-[#F6F0D7]",
+    forecastDetailBg: darkMode ? "bg-[#232323]" : "bg-[#F6F0D7]",
+    forecastDetailText: darkMode ? "text-white" : "text-gray-800",
+    forecastDetailBorder: darkMode ? "border-[#444]" : "border-gray-200",
     selectCls: darkMode
       ? "px-3 py-2 border rounded bg-[#2d2d2d] text-[#f0f0f0] border-[#444]"
       : "px-3 py-2 border rounded",
