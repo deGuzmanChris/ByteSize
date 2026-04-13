@@ -60,7 +60,7 @@ export default function OrderPage() {
   return (
     <section>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between gap-2">
         <h1 className={`text-2xl font-bold ${text}`}>Ordering</h1>
         <ExportOrderForm rows={rows} notes={notes} disabled={loading || rows.length === 0} darkMode={darkMode} />
       </div>
