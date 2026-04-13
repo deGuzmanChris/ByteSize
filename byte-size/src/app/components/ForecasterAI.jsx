@@ -219,22 +219,24 @@ export default function ForecasterAI() {
     Focus: ${focus === "all" ? "all items" : focus}
     Additional context from user: ${notes || "none"}
 
+    Based on stock depletion trends in the order history and current inventory levels, analyze what to order and how much.
+
     Please include in your response:
-    - An 'Infographic' section: a simple, concise list of items and forecasted quantities for the period, suitable for a chart.
-    - An 'Upcoming Holidays' section: list any civic or religious holidays in the forecast period that could affect inventory.
-    - A 'Reasoning' section: detailed explanation of how the forecast was determined, including how holidays and special circumstances affect the numbers.
+    - An 'Infographic' section: recommended quantities to order for each item for the forecast period, based on depletion trends. Format: Item Name: Quantity. Flag items at risk of stockout with an asterisk (*).
+    - An 'Upcoming Holidays' section: list any civic or religious holidays in the forecast period that could affect demand or inventory.
+    - A 'Reasoning' section: detailed explanation of depletion trends for each item, current stock levels vs. par levels, and how the recommended order quantities account for expected volume and holidays.
 
     Format example:
     Infographic:
-    Bread: 20
-    Milk: 12
+    Bread: 50
+    Milk: 25 *
     Eggs: 30
 
     Upcoming Holidays:
-    Holiday1, Holiday2, ...
+    July 4th, Labor Day
 
     Reasoning:
-    Explain the logic and factors considered.
+    Bread depletes at ~2 units/day based on 90-day history. Current stock of 8 units will not sustain normal operations for 7 days. Recommend ordering 50 units. Milk is critically low at 5 units and depletes at ~1.5 units/day - marked as at-risk, recommend 25 units immediately.
 
     Only respond to inventory-related questions. If the additional context is unrelated to inventory, ignore it.`;
 
@@ -408,7 +410,7 @@ export default function ForecasterAI() {
                         color: darkMode ? '#fff' : undefined,
                         maxRotation: 0,
                         minRotation: 0,
-                        callback: function(value, index) {
+                        callback: function(_, index) {
                           return chartData.labels[index] || '';
                         }
                       },
