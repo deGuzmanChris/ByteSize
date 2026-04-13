@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { FaInfoCircle, FaPen, FaTrash, FaChevronLeft } from "react-icons/fa";
+import { FaInfoCircle, FaPen, FaTrash, FaChevronLeft, FaEllipsisV } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getInventoryItems, createInventoryItem, updateInventoryItem, deleteInventoryItem } from "../../lib/inventory";
 import { getColorTokens } from "../components/colorTokens.js";
@@ -39,6 +39,7 @@ export function AreaItemList({ areaName, onBack }) {
   const [viewItem, setViewItem] = useState(null);
   const [editItemIdx, setEditItemIdx] = useState(null);
   const [deleteItemIdx, setDeleteItemIdx] = useState(null);
+  const [openActionMenuIdx, setOpenActionMenuIdx] = useState(null);
 
   const colorTokens = getColorTokens(darkMode);
   const sidebarActiveBg = colorTokens.sidebarActiveBg;
@@ -61,6 +62,17 @@ export function AreaItemList({ areaName, onBack }) {
     fetchItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaName]);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!event.target.closest("[data-area-item-actions]")) {
+        setOpenActionMenuIdx(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
 
   const handleAreaCountInputChange = (idx, value) => {
     if ((value === "" || /^\d+$/.test(value)) && value.length <= 2) {
@@ -110,12 +122,14 @@ export function AreaItemList({ areaName, onBack }) {
     const merged = { ...items[idx], ...updatedItem };
     delete merged.name;
     await updateInventoryItem(itemId, merged);
+    setOpenActionMenuIdx(null);
     setEditItemIdx(null);
     fetchItems();
   };
 
   const handleDeleteItem = async (idx) => {
     await deleteInventoryItem(items[idx].id);
+    setOpenActionMenuIdx(null);
     setDeleteItemIdx(null);
     fetchItems();
   };
@@ -172,14 +186,19 @@ export function AreaItemList({ areaName, onBack }) {
         <ul className="space-y-4">
           {filteredItems.map((item, idx) => (
             <li key={idx}>
-              <div className={`${cardBg} ${cardText} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 transition-colors duration-200`}>
-                <span className="flex-1 font-semibold text-base">{item.name}</span>
-                <div className="flex items-center gap-1 ml-1" style={{ minWidth: "100px" }}>
+              <div className={`${cardBg} ${cardText} rounded-xl shadow-md flex items-center min-h-18 h-18 px-4 gap-2 transition-colors duration-200`}>
+                <span
+                  className="flex-1 min-w-0 font-semibold text-base truncate"
+                  title={item.name}
+                >
+                  {item.name}
+                </span>
+                <div className="flex items-center gap-1 shrink-0">
                   <input
                     type="number"
                     maxLength={2}
-                    className={`${mainCardBg} ${darkMode ? "text-white" : "text-black"} border-[#555] w-15 h-8 p-1 rounded border focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center placeholder:opacity-60 placeholder:font-semibold`}
-                    style={{ MozAppearance: "textfield", marginRight: "2px" }}
+                    className={`${mainCardBg} ${darkMode ? "text-white" : "text-black"} border-[#555] w-10 h-7 p-1 rounded border focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center placeholder:opacity-60 placeholder:font-semibold`}
+                    style={{ MozAppearance: "textfield" }}
                     placeholder="Qty"
                     value={(() => {
                       let v = areaCountInputs[idx];
@@ -190,40 +209,93 @@ export function AreaItemList({ areaName, onBack }) {
                     onChange={e => handleAreaCountInputChange(idx, e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") handleAreaCountEnter(idx); }}
                   />
-                  {item.inventoryUnit && (
-                    <span className={`text-xs font-bold px-1 rounded ${darkMode ? cardBg + " text-white" : cardBg + " text-black"} whitespace-nowrap min-w-9 text-left`}>
-                      {item.inventoryUnit}
-                    </span>
-                  )}
+                  <span className={`text-xs font-bold px-1 rounded ${darkMode ? cardBg + " text-white" : cardBg + " text-black"} whitespace-nowrap w-10 text-left mr-1`}>
+                    {item.inventoryUnit || ""}
+                  </span>
+                  <button
+                    className={`px-2 py-1 rounded transition-colors text-sm mr-1 ${savedStatus[idx] ? "bg-green-500 text-white" : `${sidebarActiveBg} ${text}`}`}
+                    onClick={() => handleAreaCountEnter(idx)}
+                    title="Enter Quantity"
+                  >
+                    Enter
+                  </button>
+                  <div className="relative sm:hidden" data-area-item-actions>
+                    <button
+                      className={`p-1.5 ${mainCardBg} border border-[#b7c9a6] ${text} rounded-full shadow transition-colors flex items-center justify-center`}
+                      onClick={() => setOpenActionMenuIdx(current => current === idx ? null : idx)}
+                      title="More Actions"
+                      aria-label={`More actions for ${item.name}`}
+                      aria-expanded={openActionMenuIdx === idx}
+                    >
+                      <FaEllipsisV className="w-4 h-4" />
+                    </button>
+                    {openActionMenuIdx === idx && (
+                      <div
+                        className={`${mainCardBg} absolute right-0 top-full z-20 mt-2 rounded-xl border border-[#b7c9a6] p-1 shadow-lg`}
+                      >
+                        <button
+                          className={`flex w-full items-center justify-center rounded-lg p-2 text-sm transition-colors ${text} ${darkMode ? "hover:bg-[#4a4a4a]" : "hover:bg-[#f1edd8]"}`}
+                          onClick={() => {
+                            setOpenActionMenuIdx(null);
+                            setViewItem(item);
+                          }}
+                          title="View Info"
+                          aria-label={`View info for ${item.name}`}
+                        >
+                          <FaInfoCircle className="w-4 h-4 text-[#355b2c]" />
+                        </button>
+                        <button
+                          className={`flex w-full items-center justify-center rounded-lg p-2 text-sm transition-colors ${text} ${darkMode ? "hover:bg-[#4a4a4a]" : "hover:bg-[#f1edd8]"}`}
+                          onClick={() => {
+                            setOpenActionMenuIdx(null);
+                            setEditItemIdx(idx);
+                          }}
+                          title="Edit Info"
+                          aria-label={`Edit ${item.name}`}
+                        >
+                          <FaPen className="w-4 h-4 text-yellow-700" />
+                        </button>
+                        <button
+                          className={`flex w-full items-center justify-center rounded-lg p-2 text-sm transition-colors ${darkMode ? "text-red-300 hover:bg-[#4a4a4a]" : "text-[#b33b37] hover:bg-[#fce4e3]"}`}
+                          onClick={() => {
+                            setOpenActionMenuIdx(null);
+                            setDeleteItemIdx(idx);
+                          }}
+                          title="Delete Item"
+                          aria-label={`Delete ${item.name}`}
+                        >
+                          <FaTrash className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="hidden items-center gap-1 sm:flex">
+                    <button
+                      className={`p-2 ${mainCardBg} border border-[#b7c9a6] text-[#355b2c] rounded-full shadow transition-colors flex items-center justify-center`}
+                      onClick={() => setViewItem(item)}
+                      title="View Info"
+                      aria-label={`View info for ${item.name}`}
+                    >
+                      <FaInfoCircle className="w-5 h-5" />
+                    </button>
+                    <button
+                      className="p-2 bg-yellow-100 text-yellow-700 rounded-full shadow hover:bg-yellow-200 transition-colors flex items-center justify-center"
+                      onClick={() => setEditItemIdx(idx)}
+                      title="Edit Info"
+                      aria-label={`Edit ${item.name}`}
+                    >
+                      <FaPen className="w-5 h-5" />
+                    </button>
+                    <button
+                      className="p-2 bg-[#d9534f] text-white rounded-full shadow hover:bg-[#c9302c] transition-colors flex items-center justify-center"
+                      onClick={() => setDeleteItemIdx(idx)}
+                      title="Delete Item"
+                      aria-label={`Delete ${item.name}`}
+                    >
+                      <FaTrash className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  className={`ml-1 px-2 py-1 rounded transition-colors ${savedStatus[idx] ? "bg-green-500 text-white" : `${sidebarActiveBg} ${text}`}`}
-                  onClick={() => handleAreaCountEnter(idx)}
-                  title="Enter Quantity"
-                >
-                  Enter
-                </button>
-                <button
-                  className={`ml-2 p-2 ${mainCardBg} border border-[#b7c9a6] text-[#355b2c] rounded-full shadow transition-colors flex items-center justify-center`}
-                  onClick={() => setViewItem(item)}
-                  title="View Info"
-                >
-                  <FaInfoCircle className="w-5 h-5" />
-                </button>
-                <button
-                  className="ml-2 p-2 bg-yellow-100 text-yellow-700 rounded-full shadow hover:bg-yellow-200 transition-colors flex items-center justify-center"
-                  onClick={() => setEditItemIdx(idx)}
-                  title="Edit Info"
-                >
-                  <FaPen className="w-5 h-5" />
-                </button>
-                <button
-                  className="ml-2 p-2 bg-[#d9534f] text-white rounded-full shadow hover:bg-[#c9302c] transition-colors flex items-center justify-center"
-                  onClick={() => setDeleteItemIdx(idx)}
-                  title="Delete Item"
-                >
-                  <FaTrash className="w-5 h-5" />
-                </button>
 
                 {deleteItemIdx === idx && (
                   <DeleteConfirmModal
