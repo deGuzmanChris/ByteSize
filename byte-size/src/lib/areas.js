@@ -22,6 +22,7 @@ export async function getNextAreaId() {
 export async function createArea(areaName) {
   const nextId = await getNextAreaId();
   await setDoc(doc(db, AREAS_COLLECTION, nextId), {
+    id: nextId,
     name: areaName,
     created_at: new Date()
   });

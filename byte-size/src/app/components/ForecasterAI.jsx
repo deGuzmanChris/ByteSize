@@ -293,17 +293,29 @@ export default function ForecasterAI() {
         setError("Forecast generated, but it could not be saved.");
       }
     } catch (err) {
-      console.error(err);
-      setChartData(previousState.chartData);
-      setDetailedReasoning(previousState.detailedReasoning);
-      setHasGenerated(previousState.hasGenerated);
-      setHolidays(previousState.holidays);
-      setResponse(previousState.response);
+      const msg = err?.message || "";
+      const isOverloaded =
+        msg.includes("429") ||
+        msg.includes("overloaded") ||
+        msg.includes("RESOURCE_EXHAUSTED");
+      const isBlocked =
+        msg.includes("SAFETY") ||
+        msg.includes("blocked") ||
+        msg.includes("finish_reason");
+      const isOffline =
+        msg.includes("Failed to fetch") ||
+        msg.includes("NetworkError") ||
+        msg.includes("offline");
 
-      try {
-        await loadSavedForecast();
-        setError("Failed to generate a new forecast. Showing the latest saved forecast.");
-      } catch {
+      if (!isOverloaded) console.error(err);
+
+      if (isOverloaded) {
+        setError("Gemini is currently overloaded. Please try again in a moment.");
+      } else if (isBlocked) {
+        setError("The forecast request was blocked by the AI safety filter. Try adjusting your notes.");
+      } else if (isOffline) {
+        setError("Network error — check your connection and try again.");
+      } else {
         setError("Failed to generate forecast. Please try again.");
       }
     } finally {
