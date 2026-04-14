@@ -52,8 +52,8 @@ service cloud.firestore {
 
     // --- Users collection ---
     match /users/{userId} {
-      // Anyone authenticated can read user list (needed for settings page)
-      allow read: if isAuthenticated();
+      // Public read needed for forgot-password email lookup (pre-auth)
+      allow read: if true;
 
       // Only admins can create users; data must be valid
       allow create: if isAdmin() && validUserData(request.resource.data);
@@ -100,6 +100,12 @@ service cloud.firestore {
       allow create: if isAuthenticated() && validOrderData(request.resource.data);
       // No updates or deletes — this is an immutable audit trail
       allow update, delete: if false;
+    }
+
+    // --- Forecasts collection (written by Admin SDK, read by API route) ---
+    // Admin SDK bypasses these rules, but define them for any direct client reads
+    match /forecasts/{forecastId} {
+      allow read, write: if isAuthenticated();
     }
   }
 }

@@ -69,32 +69,30 @@ Only respond to inventory-related questions. If the additional context is unrela
       const text = await generateForecast(prompt);
       setResponse(text);
     } catch (err) {
+      const msg = err?.message || "";
       const isOverloaded =
-        err?.message?.includes("429") ||
-        err?.message?.includes("overloaded") ||
-        err?.message?.includes("RESOURCE_EXHAUSTED");
+        msg.includes("429") ||
+        msg.includes("overloaded") ||
+        msg.includes("RESOURCE_EXHAUSTED");
+      const isBlocked =
+        msg.includes("SAFETY") ||
+        msg.includes("blocked") ||
+        msg.includes("finish_reason");
+      const isOffline =
+        msg.includes("Failed to fetch") ||
+        msg.includes("NetworkError") ||
+        msg.includes("offline");
 
       if (!isOverloaded) console.error(err);
 
-      setChartData(previousState.chartData);
-      setDetailedReasoning(previousState.detailedReasoning);
-      setHasGenerated(previousState.hasGenerated);
-      setHolidays(previousState.holidays);
-      setResponse(previousState.response);
-
-      try {
-        await loadSavedForecast();
-        setError(
-          isOverloaded
-            ? "Gemini is currently overloaded. Showing your latest saved forecast — try again in a moment."
-            : "Failed to generate a new forecast. Showing the latest saved forecast."
-        );
-      } catch {
-        setError(
-          isOverloaded
-            ? "Gemini is currently overloaded. Please try again in a moment."
-            : "Failed to generate forecast. Please try again."
-        );
+      if (isOverloaded) {
+        setError("Gemini is currently overloaded. Please try again in a moment.");
+      } else if (isBlocked) {
+        setError("The forecast request was blocked by the AI safety filter. Try adjusting your notes.");
+      } else if (isOffline) {
+        setError("Network error — check your connection and try again.");
+      } else {
+        setError("Failed to generate forecast. Please try again.");
       }
     } finally {
       setLoading(false);
