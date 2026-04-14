@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -17,6 +17,7 @@ import { getInventoryItems } from "@/lib/inventory";
 import { getOrderHistory } from "@/lib/orderHistory";
 import { useDarkMode } from "@/lib/DarkModeContext";
 import { getColorTokens } from "./colorTokens";
+import Modal from "./Modal";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -125,6 +126,27 @@ export default function ForecasterAI() {
   const [hasGenerated, setHasGenerated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+  const [showChartModal, setShowChartModal] = useState(false);
+
+  const modalChartEntries = useMemo(() => {
+    if (!chartData?.labels?.length || !chartData?.datasets?.[0]?.data?.length) return [];
+
+    const entries = chartData.labels.map((label, idx) => ({
+      label,
+      value: Number(chartData.datasets[0].data[idx] ?? 0),
+    }));
+
+    entries.sort((a, b) => b.value - a.value);
+    return entries;
+  }, [chartData]);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   async function loadSavedForecast() {
     const params = new URLSearchParams({ userId: "anonymous" });
@@ -383,52 +405,91 @@ export default function ForecasterAI() {
         <div className={`mt-6 p-4 rounded-xl shadow border ${darkMode ? "border-white" : "border-black"} ${tokens.cardBg} ${darkMode ? 'text-white' : ''}`}>
           <h3 className={`font-semibold mb-2 ${darkMode ? 'text-white' : tokens.text}`}>Forecast Chart</h3>
           {chartData && chartData.labels && chartData.labels.length > 0 ? (
-              <Bar
-                data={{
-                  ...chartData,
-                  datasets: [
-                    {
-                      ...chartData.datasets[0],
-                      backgroundColor: darkMode ? "#b6d094" : "#8fa481",
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  plugins: {
-                    legend: { display: false },
-                    title: { display: false },
-                  },
-                  scales: {
-                    x: {
-                      title: {
-                        display: true,
-                        text: "Item",
-                        color: darkMode ? '#fff' : undefined,
+              <>
+                {isMobile ? (
+                  <div className={`rounded-xl border p-3 ${darkMode ? "border-white/20 bg-white/5" : "border-black/10 bg-black/5"}`}>
+                    <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${darkMode ? "text-white/50" : "text-black/40"}`}>Top Items</p>
+                    <div className="flex flex-col gap-1.5 mb-3">
+                      {modalChartEntries.slice(0, 2).map((entry) => {
+                        const max = modalChartEntries[0]?.value || 1;
+                        const pct = Math.round((entry.value / max) * 100);
+                        return (
+                          <div key={entry.label} className="flex items-center gap-2">
+                            <span className={`w-20 text-xs truncate shrink-0 ${darkMode ? "text-white/70" : "text-black/60"}`}>{entry.label}</span>
+                            <div className={`flex-1 rounded-full h-2 ${darkMode ? "bg-white/10" : "bg-black/10"}`}>
+                              <div
+                                className="h-2 rounded-full bg-[#8fa481]"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className={`w-6 text-right text-xs shrink-0 ${darkMode ? "text-white/70" : "text-black/60"}`}>{entry.value}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowChartModal(true)}
+                      className={`w-full text-xs font-semibold py-1.5 rounded-lg border transition-colors ${darkMode ? "border-white/20 text-white/80 hover:bg-white/10" : "border-black/15 text-black/60 hover:bg-black/5"}`}
+                    >
+                      See all {modalChartEntries.length} items →
+                    </button>
+                  </div>
+                ) : (
+                  <Bar
+                    data={{
+                      ...chartData,
+                      datasets: [
+                        {
+                          ...chartData.datasets[0],
+                          backgroundColor: darkMode ? "#b6d094" : "#8fa481",
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: { display: false },
+                        title: { display: false },
                       },
-                      ticks: {
-                        color: darkMode ? '#fff' : undefined,
-                        maxRotation: 0,
-                        minRotation: 0,
-                        callback: function(_, index) {
-                          return chartData.labels[index] || '';
-                        }
+                      scales: {
+                        x: {
+                          title: {
+                            display: true,
+                            // text: "Item",
+                            color: darkMode ? '#fff' : undefined,
+                          },
+                          ticks: {
+                            color: darkMode ? '#fff' : undefined,
+                            maxRotation: 0,
+                            minRotation: 0,
+                            callback: function(_, index) {
+                              return chartData.labels[index] || '';
+                            }
+                          },
+                          grid: {
+                            color: darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                          },
+                        },
+                        y: {
+                          title: {
+                            display: true,
+                            text: "Forecasted Qty",
+                            color: darkMode ? '#fff' : undefined,
+                          },
+                          ticks: {
+                            color: darkMode ? '#fff' : undefined,
+                          },
+                          grid: {
+                            color: darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                          },
+                          beginAtZero: true
+                        },
                       },
-                    },
-                    y: {
-                      title: {
-                        display: true,
-                        text: "Forecasted Qty",
-                        color: darkMode ? '#fff' : undefined,
-                      },
-                      ticks: {
-                        color: darkMode ? '#fff' : undefined,
-                      },
-                      beginAtZero: true
-                    },
-                  },
-                }}
-              />
+                    }}
+                  />
+                )}
+              </>
           ) : (
             <div className="flex flex-col items-center justify-center min-h-50 text-gray-400">
               <span>Generating Forecast...</span>
@@ -441,6 +502,71 @@ export default function ForecasterAI() {
             </div>
           )}
         </div>
+      )}
+
+      {showChartModal && chartData && chartData.labels && chartData.labels.length > 0 && (
+        <Modal onClose={() => setShowChartModal(false)} title="Forecast Chart" darkMode={darkMode}>
+          <div className="w-[82vw] max-w-150">
+            <div
+              style={{
+                height: `${Math.min(Math.max(modalChartEntries.length * 36, 260), 520)}px`,
+                maxHeight: "65vh",
+              }}
+            >
+              <Bar
+                data={{
+                  labels: modalChartEntries.map((entry) => entry.label),
+                  datasets: [
+                    {
+                      label: "Forecasted Qty",
+                      data: modalChartEntries.map((entry) => entry.value),
+                      backgroundColor: darkMode ? "#b6d094" : "#8fa481",
+                      barThickness: 16,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  indexAxis: "y",
+                  plugins: {
+                    legend: { display: false },
+                    title: { display: false },
+                  },
+                  scales: {
+                    x: {
+                      title: {
+                        display: true,
+                        text: "Forecasted Qty",
+                        color: darkMode ? '#fff' : undefined,
+                      },
+                      ticks: {
+                        color: darkMode ? '#fff' : undefined,
+                      },
+                      grid: {
+                        color: darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                      },
+                      beginAtZero: true,
+                    },
+                    y: {
+                      title: {
+                        display: false,
+                        text: "",
+                        color: darkMode ? '#fff' : undefined,
+                      },
+                      ticks: {
+                        color: darkMode ? '#fff' : undefined,
+                      },
+                      grid: {
+                        color: darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                      },
+                    },
+                  },
+                }}
+              />
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Detailed Display */}
