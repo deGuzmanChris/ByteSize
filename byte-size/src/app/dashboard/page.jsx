@@ -15,7 +15,6 @@ import { AreaItemList } from "../area-item-list/page";
 import OrderPage from "../order/page";
 import ReportsPage from "../reports/page";
 import SettingsPage from "../settings/page";
-import PrepListPage from "../../prep-list/page";
 
 const SIDEBAR_BREAKPOINT = 768;
 
@@ -55,7 +54,6 @@ function DashboardContent() {
   const allTabs = [
     { id: "inventory", label: "Inventory" },
     { id: "ordering", label: "Ordering" },
-    { id: "prep", label: "Prep Lists" },
     { id: "reports", label: "Reports" },
     { id: "settings", label: "Settings" },
   ];
@@ -175,13 +173,6 @@ function DashboardContent() {
           <section>
             <div className={`${cardBg} ${text} rounded-xl shadow-md p-6 max-w-3xl mx-auto transition-colors duration-200`}>
               <OrderPage />
-            </div>
-          </section>
-        )}
-        {activeTab === "prep" && (
-          <section>
-            <div className={`${cardBg} ${text} rounded-xl shadow-md p-6 max-w-3xl mx-auto transition-colors duration-200`}>
-              <PrepListPage />
             </div>
           </section>
         )}
