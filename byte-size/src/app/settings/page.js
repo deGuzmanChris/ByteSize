@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createUser, getUsers, updateUserDoc, deleteUserDoc } from "../../lib/users";
 import { auth } from "../../lib/firebase";
 import { useDarkMode } from "../../lib/DarkModeContext";
 import { getColorTokens } from "../components/colorTokens";
+import Modal from "../components/Modal";
 
 const ASSIGNABLE_ROLES = {
   admin: ["staff", "admin"],
@@ -12,15 +13,36 @@ const ASSIGNABLE_ROLES = {
 
 export default function SettingsPage({ currentRole }) {
   const { darkMode } = useDarkMode();
+  const userFormSectionRef = useRef(null);
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({ name: "", email: "", role: "staff" });
 
   const isAdmin = currentRole === "admin";
   const assignableRoles = ASSIGNABLE_ROLES[currentRole] ?? [];
   const canManage = (targetRole) => assignableRoles.includes(targetRole);
+  const getRoleBadgeCls = (role) => {
+    const roleKey = String(role || "").toLowerCase();
+
+    if (roleKey === "admin") {
+      return darkMode
+        ? "text-xs px-2 py-0.5 rounded-full bg-[#1e3a5f] text-[#93c5fd] capitalize"
+        : "text-xs px-2 py-0.5 rounded-full bg-[#dbeafe] text-[#1d4ed8] capitalize";
+    }
+
+    if (roleKey === "staff") {
+      return darkMode
+        ? "text-xs px-2 py-0.5 rounded-full bg-[#1f4d2e] text-[#86efac] capitalize"
+        : "text-xs px-2 py-0.5 rounded-full bg-[#dcfce7] text-[#166534] capitalize";
+    }
+
+    return darkMode
+      ? "text-xs px-2 py-0.5 rounded-full bg-[#3a3a3a] text-[#d1d5db] capitalize"
+      : "text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 capitalize";
+  };
   const [editingId, setEditingId] = useState(null);
   const [notice, setNotice] = useState({ text: "", type: "success" });
   const [loading, setLoading] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   // Use shared color tokens
   const tokens = getColorTokens(darkMode);
@@ -77,6 +99,10 @@ export default function SettingsPage({ currentRole }) {
     setEditingId(user.id);
     setForm({ name: user.name, email: user.email, role: user.role });
     setNotice({ text: "", type: "success" });
+
+    requestAnimationFrame(() => {
+      userFormSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   async function handleUpdate(e) {
@@ -98,8 +124,8 @@ export default function SettingsPage({ currentRole }) {
     }
   }
 
-  async function handleDelete(user) {
-    if (!confirm(`Delete ${user.name}? This cannot be undone.`)) return;
+  async function handleDelete() {
+    if (!userToDelete) return;
     setLoading(true);
     try {
       const idToken = await auth.currentUser.getIdToken();
@@ -109,15 +135,16 @@ export default function SettingsPage({ currentRole }) {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ uid: user.id }),
+        body: JSON.stringify({ uid: userToDelete.id }),
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Auth deletion failed");
       }
-      await deleteUserDoc(user.id);
-      showNotice(`${user.name} has been deleted.`);
-      if (editingId === user.id) resetForm();
+      await deleteUserDoc(userToDelete.id);
+      showNotice(`${userToDelete.name} has been deleted.`);
+      if (editingId === userToDelete.id) resetForm();
+      setUserToDelete(null);
       await fetchUsers();
     } catch (err) {
       showNotice("Error deleting user: " + err.message, "error");
@@ -127,9 +154,16 @@ export default function SettingsPage({ currentRole }) {
   }
 
   return (
-    <div className={`${tokens.text} transition-colors duration-200`}>
+    <div
+      className={`${tokens.text} transition-colors duration-200`}
+      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+    >
       {isAdmin && (
-        <div className={`${tokens.sectionBg} rounded-xl shadow p-6 mb-6 transition-colors duration-200`}>
+        <div
+          ref={userFormSectionRef}
+          className={`${tokens.sectionBg} rounded-xl shadow p-6 mb-6 transition-colors duration-200`}
+          style={{ scrollMarginTop: "5.5rem" }}
+        >
           <h2 className="text-lg font-semibold mb-1">
             {editingId ? "Edit User" : "Create New User"}
           </h2>
@@ -209,12 +243,15 @@ export default function SettingsPage({ currentRole }) {
         ) : (
           <div className="space-y-3">
             {users.map((user) => (
-              <div key={user.id} className={tokens.userCardCls}>
-                <div>
-                  <div className="font-medium">{user.name}</div>
-                  <div className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{user.email}</div>
+              <div
+                key={user.id}
+                className={`${tokens.userCardCls} flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between`}
+              >
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{user.name}</div>
+                  <div className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"} truncate`}>{user.email}</div>
                   <div className="flex gap-2 mt-1">
-                    <span className={tokens.roleBadgeCls}>{user.role}</span>
+                    <span className={getRoleBadgeCls(user.role)}>{user.role}</span>
                     {user.mustChangePassword && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
                         Must set password
@@ -223,17 +260,21 @@ export default function SettingsPage({ currentRole }) {
                   </div>
                 </div>
                 {isAdmin && (
-                  <div className="flex gap-2">
+                  <div className="mt-1 flex w-full gap-2 self-start border-t border-black/10 pt-2 dark:border-white/10 sm:mt-0 sm:w-auto sm:self-auto sm:border-0 sm:pt-0">
                     {canManage(user.role) && (
-                      <button onClick={() => handleEditInit(user)} disabled={loading} className={editBtnCls}>
+                      <button
+                        onClick={() => handleEditInit(user)}
+                        disabled={loading}
+                        className={`${editBtnCls} min-h-7 px-1.5 py-0 text-xs sm:min-h-0`}
+                      >
                         Edit
                       </button>
                     )}
                     {canManage(user.role) && (
                       <button
-                        onClick={() => handleDelete(user)}
+                        onClick={() => setUserToDelete(user)}
                         disabled={loading}
-                        className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
+                        className="min-h-7 px-1.5 py-0 text-xs bg-[#d9534f] text-white rounded hover:bg-[#c9302c] disabled:opacity-50 sm:min-h-0"
                       >
                         Delete
                       </button>
@@ -245,6 +286,36 @@ export default function SettingsPage({ currentRole }) {
           </div>
         )}
       </div>
+
+      {userToDelete && (
+        <Modal
+          darkMode={darkMode}
+          title="Delete User"
+          onClose={() => !loading && setUserToDelete(null)}
+        >
+          <p className={`mb-4 text-sm ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+            Are you sure want to delete this user?
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setUserToDelete(null)}
+              disabled={loading}
+              className={tokens.cancelBtn}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={loading}
+              className="px-4 py-2 rounded bg-[#d9534f] text-white hover:bg-[#c9302c] disabled:opacity-50"
+            >
+              {loading ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

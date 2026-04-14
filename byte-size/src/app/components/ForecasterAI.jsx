@@ -1,11 +1,114 @@
+
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
 import { generateForecast } from "@/lib/gemini";
 import { getInventoryItems } from "@/lib/inventory";
 import { getOrderHistory } from "@/lib/orderHistory";
 import { useDarkMode } from "@/lib/DarkModeContext";
 import { getColorTokens } from "./colorTokens";
+import Modal from "./Modal";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+// Helper to format markdown-like text to HTML for the detailed reasoning
+function formatReasoning(text) {
+  if (!text) return "";
+  // Convert **bold**
+  let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  // Convert numbered lists
+  html = html.replace(/\n(\d+)\. /g, '<br/><span class=\"font-bold\">$1.</span> ');
+  // Convert bullets (replace asterisk with dash, including at start of string)
+  html = html.replace(/(^|\n)\* /g, '$1- ');
+  // Convert newlines to paragraphs (for double newlines)
+  html = html.replace(/\n{2,}/g, '<br/><br/>');
+  // Convert single newlines to <br/>
+  html = html.replace(/\n/g, '<br/>');
+  return html;
+}
+
+function extractHolidays(text) {
+  const match = text.match(/Upcoming Holidays:(.*?)(?:\n\n|$)/is);
+  if (match) {
+    return match[1]
+      .split(/\n|,/)
+      .map((holiday) => holiday.trim())
+      .filter((holiday) => holiday.length > 0);
+  }
+  return [];
+}
+
+function extractReasoning(text) {
+  const match = text.match(/Reasoning:(.*)/is);
+  if (match) {
+    return match[1].trim();
+  }
+  return "";
+}
+
+function extractChartData(text) {
+  const infographicMatch = text.match(/Infographic:(.*?)(?:\n\s*Upcoming Holidays:|\n\s*Reasoning:|$)/is);
+  if (!infographicMatch) return null;
+
+  const itemMap = {};
+  const lines = infographicMatch[1].split("\n");
+
+  lines.forEach((line) => {
+    const cleanLine = line.replace(/^[*\s]+|[*\s]+$/g, "");
+    if (!cleanLine) return;
+    if (/^(#|Current|Inventory|Forecast|Total|Summary|\d+\sitems?)/i.test(cleanLine)) return;
+
+    const match = cleanLine.match(/^(?:- )?(.*?):\s*(\d+(?:\.\d+)?)/);
+    if (!match) return;
+
+    const label = match[1].replace(/[*]+/g, "").trim();
+    if (/^current$/i.test(label)) return;
+
+    const quantity = Number(match[2]);
+    if (Number.isNaN(quantity)) return;
+
+    itemMap[label] = (itemMap[label] || 0) + quantity;
+  });
+
+  const labels = Object.keys(itemMap);
+  if (labels.length === 0) return null;
+
+  return {
+    labels,
+    datasets: [
+      {
+        label: "Forecasted Qty",
+        data: labels.map((label) => Math.floor(itemMap[label])),
+        backgroundColor: "#8fa481",
+      },
+    ],
+  };
+}
+
+function getSavedForecastState(forecast) {
+  const result = forecast?.result || {};
+  const rawText = result.response || result.text || forecast?.response || "";
+  const chartData = result.chartData || (rawText ? extractChartData(rawText) : null);
+  const reasoning = result.reasoning || (rawText ? extractReasoning(rawText) : "");
+  const holidays = result.holidays || (rawText ? extractHolidays(rawText) : []);
+
+  return {
+    chartData,
+    holidays,
+    reasoning,
+    response: rawText,
+  };
+}
 
 export default function ForecasterAI() {
   const { darkMode } = useDarkMode();
@@ -16,13 +119,92 @@ export default function ForecasterAI() {
   const [volume, setVolume] = useState("normal");
   const [notes, setNotes] = useState("");
   const [response, setResponse] = useState("");
+  const [chartData, setChartData] = useState(null);
+  const [holidays, setHolidays] = useState([]);
+  const [detailedReasoning, setDetailedReasoning] = useState("");
+  const [displayMode, setDisplayMode] = useState("infographic"); // 'infographic' or 'detailed'
+  const [hasGenerated, setHasGenerated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+  const [showChartModal, setShowChartModal] = useState(false);
+
+  const modalChartEntries = useMemo(() => {
+    if (!chartData?.labels?.length || !chartData?.datasets?.[0]?.data?.length) return [];
+
+    const entries = chartData.labels.map((label, idx) => ({
+      label,
+      value: Number(chartData.datasets[0].data[idx] ?? 0),
+    }));
+
+    entries.sort((a, b) => b.value - a.value);
+    return entries;
+  }, [chartData]);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  async function loadSavedForecast() {
+    const params = new URLSearchParams({ userId: "anonymous" });
+    const res = await fetch(`/api/forecast?${params.toString()}`, {
+      cache: "no-store",
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to load saved forecast.");
+    }
+
+    if (!data.success || !data.forecast) {
+      setHasGenerated(false);
+      return null;
+    }
+
+    const savedInput = data.forecast.input || {};
+    const savedForecast = getSavedForecastState(data.forecast);
+
+    setTimeRange(savedInput.timeRange || "7");
+    setFocus(savedInput.focus || "all");
+    setVolume(savedInput.volume || "normal");
+    setNotes(savedInput.notes || "");
+    setHasGenerated(true);
+    setResponse(savedForecast.response);
+    setChartData(savedForecast.chartData);
+    setDetailedReasoning(savedForecast.reasoning);
+    setHolidays(savedForecast.holidays);
+
+    return data.forecast;
+  }
+
+  // Load latest forecast on mount
+  useEffect(() => {
+    async function fetchForecast() {
+      try {
+        await loadSavedForecast();
+      } catch (e) {
+        setError("Failed to load saved forecast.");
+      }
+    }
+    fetchForecast();
+    // Only run on mount (not on input change)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleGenerate() {
+    const previousState = {
+      chartData,
+      detailedReasoning,
+      hasGenerated,
+      holidays,
+      response,
+    };
+
     setLoading(true);
     setError("");
-    setResponse("");
 
     try {
       // Fetch data from Firebase
@@ -48,26 +230,68 @@ export default function ForecasterAI() {
 
       const prompt = `You are an inventory forecasting assistant for a food service business.
 
-Here is the current inventory:
-${JSON.stringify(inventorySummary, null, 2)}
+    Here is the current inventory:
+    ${JSON.stringify(inventorySummary, null, 2)}
 
-Here is the order history for the last 90 days:
-${JSON.stringify(orderSummary, null, 2)}
+    Here is the order history for the last 90 days:
+    ${JSON.stringify(orderSummary, null, 2)}
 
-The user wants a forecast for the next ${timeRange} days.
-Expected volume: ${volume}
-Focus: ${focus === "all" ? "all items" : focus}
-Additional context from user: ${notes || "none"}
+    The user wants a forecast for the next ${timeRange} days.
+    Expected volume: ${volume}
+    Focus: ${focus === "all" ? "all items" : focus}
+    Additional context from user: ${notes || "none"}
 
-Based on the stock depletion trends in the order history and current inventory levels:
-1. Recommend what to order and how much.
-2. Flag any items trending toward running out before the forecast period ends.
-3. Keep the response concise and actionable.
+    Based on stock depletion trends in the order history and current inventory levels, analyze what to order and how much.
 
-Only respond to inventory-related questions. If the additional context is unrelated to inventory, ignore it.`;
+    Please include in your response:
+    - An 'Infographic' section: recommended quantities to order for each item for the forecast period, based on depletion trends. Format: Item Name: Quantity. Flag items at risk of stockout with an asterisk (*).
+    - An 'Upcoming Holidays' section: list any civic or religious holidays in the forecast period that could affect demand or inventory.
+    - A 'Reasoning' section: detailed explanation of depletion trends for each item, current stock levels vs. par levels, and how the recommended order quantities account for expected volume and holidays.
+
+    Format example:
+    Infographic:
+    Bread: 50
+    Milk: 25 *
+    Eggs: 30
+
+    Upcoming Holidays:
+    July 4th, Labor Day
+
+    Reasoning:
+    Bread depletes at ~2 units/day based on 90-day history. Current stock of 8 units will not sustain normal operations for 7 days. Recommend ordering 50 units. Milk is critically low at 5 units and depletes at ~1.5 units/day - marked as at-risk, recommend 25 units immediately.
+
+    Only respond to inventory-related questions. If the additional context is unrelated to inventory, ignore it.`;
 
       const text = await generateForecast(prompt);
+      const chart = extractChartData(text);
+      const nextHolidays = extractHolidays(text);
+      const nextReasoning = extractReasoning(text);
+
       setResponse(text);
+      setChartData(chart);
+      setHolidays(nextHolidays);
+      setDetailedReasoning(nextReasoning);
+      setHasGenerated(true);
+
+      // Store forecast in Firestore with expiry
+      const saveResponse = await fetch("/api/forecast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: { timeRange, focus, volume, notes },
+          result: {
+            chartData: chart,
+            holidays: nextHolidays,
+            reasoning: nextReasoning,
+            response: text,
+          },
+        }),
+      });
+      const saveResult = await saveResponse.json();
+
+      if (!saveResponse.ok || !saveResult.success) {
+        setError("Forecast generated, but it could not be saved.");
+      }
     } catch (err) {
       const msg = err?.message || "";
       const isOverloaded =
@@ -100,19 +324,29 @@ Only respond to inventory-related questions. If the additional context is unrela
   }
 
   return (
-    <div className={`${tokens.secondaryBg} rounded-xl shadow-md p-6 transition-colors duration-200`}>
+    <div className={`${tokens.secondaryBg} rounded-xl shadow-md p-6 transition-colors duration-200 mb-8`}>
       <h2 className={`text-xl font-bold mb-4 ${tokens.text}`}>AI Forecaster</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+      {/* Toggle for Infographic/Detailed */}
+      <div className="mb-4 flex gap-2">
+        <button
+          className={`px-3 py-1 rounded ${displayMode === "infographic" ? "bg-[#8fa481] text-white" : "bg-gray-200 text-gray-700"}`}
+          onClick={() => setDisplayMode("infographic")}
+        >Infographic</button>
+        <button
+          className={`px-3 py-1 rounded ${displayMode === "detailed" ? "bg-[#8fa481] text-white" : "bg-gray-200 text-gray-700"}`}
+          onClick={() => setDisplayMode("detailed")}
+        >Detailed</button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
         {/* Time Range */}
-        <div>
-          <label className={`block text-sm font-medium mb-1 ${tokens.text}`}>
-            Forecast Period
-          </label>
+        <div className="flex flex-col gap-2">
+          <label className={`block text-sm font-medium ${tokens.text}`}>Forecast Period</label>
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className={tokens.selectCls}
+            className={tokens.selectCls + " w-full"}
           >
             <option value="7">Next 7 days</option>
             <option value="14">Next 14 days</option>
@@ -121,14 +355,12 @@ Only respond to inventory-related questions. If the additional context is unrela
         </div>
 
         {/* Focus */}
-        <div>
-          <label className={`block text-sm font-medium mb-1 ${tokens.text}`}>
-            Focus
-          </label>
+        <div className="flex flex-col gap-2">
+          <label className={`block text-sm font-medium ${tokens.text}`}>Focus</label>
           <select
             value={focus}
             onChange={(e) => setFocus(e.target.value)}
-            className={tokens.selectCls}
+            className={tokens.selectCls + " w-full"}
           >
             <option value="all">All Items</option>
             <option value="low-stock">Low Stock Only</option>
@@ -137,14 +369,12 @@ Only respond to inventory-related questions. If the additional context is unrela
         </div>
 
         {/* Volume */}
-        <div>
-          <label className={`block text-sm font-medium mb-1 ${tokens.text}`}>
-            Expected Volume
-          </label>
+        <div className="flex flex-col gap-2">
+          <label className={`block text-sm font-medium ${tokens.text}`}>Expected Volume</label>
           <select
             value={volume}
             onChange={(e) => setVolume(e.target.value)}
-            className={tokens.selectCls}
+            className={tokens.selectCls + " w-full"}
           >
             <option value="slow">Slow</option>
             <option value="normal">Normal</option>
@@ -162,7 +392,7 @@ Only respond to inventory-related questions. If the additional context is unrela
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="e.g. Catering event on Saturday, holiday weekend coming up..."
-          className={tokens.inputCls}
+          className={tokens.inputCls + (darkMode ? " text-white" : "")}
           rows={2}
           maxLength={300}
         />
@@ -182,12 +412,215 @@ Only respond to inventory-related questions. If the additional context is unrela
         <p className="mt-4 text-red-500 text-sm">{error}</p>
       )}
 
-      {/* Response */}
-      {response && (
-        <div className={`mt-6 p-4 rounded-lg ${tokens.cardBg} ${tokens.text}`}>
-          <h3 className="font-semibold mb-2">Forecast</h3>
-          <div className="whitespace-pre-wrap text-sm leading-relaxed">
-            {response}
+      {/* Infographic Display */}
+      {displayMode === "infographic" && hasGenerated && (
+        <div className={`mt-6 p-4 rounded-xl shadow border ${darkMode ? "border-white" : "border-black"} ${tokens.cardBg} ${darkMode ? 'text-white' : ''}`}>
+          <h3 className={`font-semibold mb-2 ${darkMode ? 'text-white' : tokens.text}`}>Forecast Chart</h3>
+          {chartData && chartData.labels && chartData.labels.length > 0 ? (
+              <>
+                {isMobile ? (
+                  <div className={`rounded-xl border p-3 ${darkMode ? "border-white/20 bg-white/5" : "border-black/10 bg-black/5"}`}>
+                    <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${darkMode ? "text-white/50" : "text-black/40"}`}>Top Items</p>
+                    <div className="flex flex-col gap-1.5 mb-3">
+                      {modalChartEntries.slice(0, 2).map((entry) => {
+                        const max = modalChartEntries[0]?.value || 1;
+                        const pct = Math.round((entry.value / max) * 100);
+                        return (
+                          <div key={entry.label} className="flex items-center gap-2">
+                            <span className={`w-20 text-xs truncate shrink-0 ${darkMode ? "text-white/70" : "text-black/60"}`}>{entry.label}</span>
+                            <div className={`flex-1 rounded-full h-2 ${darkMode ? "bg-white/10" : "bg-black/10"}`}>
+                              <div
+                                className="h-2 rounded-full bg-[#8fa481]"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className={`w-6 text-right text-xs shrink-0 ${darkMode ? "text-white/70" : "text-black/60"}`}>{entry.value}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowChartModal(true)}
+                      className={`w-full text-xs font-semibold py-1.5 rounded-lg border transition-colors ${darkMode ? "border-white/20 text-white/80 hover:bg-white/10" : "border-black/15 text-black/60 hover:bg-black/5"}`}
+                    >
+                      See all {modalChartEntries.length} items →
+                    </button>
+                  </div>
+                ) : (
+                  <Bar
+                    data={{
+                      ...chartData,
+                      datasets: [
+                        {
+                          ...chartData.datasets[0],
+                          backgroundColor: darkMode ? "#b6d094" : "#8fa481",
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      plugins: {
+                        legend: { display: false },
+                        title: { display: false },
+                      },
+                      scales: {
+                        x: {
+                          title: {
+                            display: true,
+                            // text: "Item",
+                            color: darkMode ? '#fff' : undefined,
+                          },
+                          ticks: {
+                            color: darkMode ? '#fff' : undefined,
+                            maxRotation: 0,
+                            minRotation: 0,
+                            callback: function(_, index) {
+                              return chartData.labels[index] || '';
+                            }
+                          },
+                          grid: {
+                            color: darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                          },
+                        },
+                        y: {
+                          title: {
+                            display: true,
+                            text: "Forecasted Qty",
+                            color: darkMode ? '#fff' : undefined,
+                          },
+                          ticks: {
+                            color: darkMode ? '#fff' : undefined,
+                          },
+                          grid: {
+                            color: darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                          },
+                          beginAtZero: true
+                        },
+                      },
+                    }}
+                  />
+                )}
+              </>
+          ) : (
+            <div className="flex flex-col items-center justify-center min-h-50 text-gray-400">
+              <span>Generating Forecast...</span>
+            </div>
+          )}
+          {/* Show holidays below chart if any */}
+          {holidays.length > 0 && (
+            <div className={`mt-4 text-sm ${tokens.text}`}>
+              <strong>Upcoming Holidays:</strong> {holidays.join(", ")}
+            </div>
+          )}
+        </div>
+      )}
+
+      {showChartModal && chartData && chartData.labels && chartData.labels.length > 0 && (
+        <Modal onClose={() => setShowChartModal(false)} title="Forecast Chart" darkMode={darkMode}>
+          <div className="w-[82vw] max-w-150">
+            <div
+              style={{
+                height: `${Math.min(Math.max(modalChartEntries.length * 36, 260), 520)}px`,
+                maxHeight: "65vh",
+              }}
+            >
+              <Bar
+                data={{
+                  labels: modalChartEntries.map((entry) => entry.label),
+                  datasets: [
+                    {
+                      label: "Forecasted Qty",
+                      data: modalChartEntries.map((entry) => entry.value),
+                      backgroundColor: darkMode ? "#b6d094" : "#8fa481",
+                      barThickness: 16,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  indexAxis: "y",
+                  plugins: {
+                    legend: { display: false },
+                    title: { display: false },
+                  },
+                  scales: {
+                    x: {
+                      title: {
+                        display: true,
+                        text: "Forecasted Qty",
+                        color: darkMode ? '#fff' : undefined,
+                      },
+                      ticks: {
+                        color: darkMode ? '#fff' : undefined,
+                      },
+                      grid: {
+                        color: darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                      },
+                      beginAtZero: true,
+                    },
+                    y: {
+                      title: {
+                        display: false,
+                        text: "",
+                        color: darkMode ? '#fff' : undefined,
+                      },
+                      ticks: {
+                        color: darkMode ? '#fff' : undefined,
+                      },
+                      grid: {
+                        color: darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                      },
+                    },
+                  },
+                }}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Detailed Display */}
+      {displayMode === "detailed" && hasGenerated && (
+        <div className={`mt-6 p-4 rounded-xl shadow border ${darkMode ? "border-white" : "border-black"} ${tokens.forecastDetailBg} ${tokens.forecastDetailText}`}>
+          <h3 className={`font-semibold mb-2 ${tokens.forecastDetailText}`}>Forecast Details</h3>
+
+          {/* Infographic Chart (same as infographic mode) */}
+          {chartData && chartData.labels && chartData.labels.length > 0 && (
+            <div className="mb-4">
+              <strong>Infographic:</strong>
+              <table className={`min-w-50 mt-2 border text-sm w-full ${darkMode ? 'border-white' : 'border-black'}`}> 
+                <thead>
+                  <tr className={darkMode ? 'bg-[#222] text-white' : 'bg-gray-100 text-gray-900'}>
+                    <th className={`px-2 py-1 border-b border-r text-left ${darkMode ? 'border-white' : 'border-black'}`}>Item</th>
+                    <th className={`px-2 py-1 border-b text-left ${darkMode ? 'border-white' : 'border-black'}`}>Forecasted Qty</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chartData.labels.map((label, idx) => (
+                    <tr key={label} className={darkMode ? 'bg-[#181818] text-white' : 'bg-white text-gray-900'}>
+                      <td className={`px-2 py-1 border-b border-r ${darkMode ? 'border-white' : 'border-black'}`}>{label}</td>
+                      <td className={`px-2 py-1 border-b ${darkMode ? 'border-white' : 'border-black'}`}>{chartData.datasets[0].data[idx]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Holidays Section */}
+          <div className={`mb-2 text-sm ${darkMode ? "text-white" : "text-gray-700"}`}>
+            <strong>Upcoming Holidays:</strong> {holidays.length > 0 ? holidays.join(", ") : "None"}
+          </div>
+
+          {/* Reasoning Section */}
+          <div className="text-sm mt-2">
+            <strong>Reasoning:</strong>
+            <div
+              className="mt-1"
+              dangerouslySetInnerHTML={{ __html: formatReasoning(detailedReasoning || "No detailed reasoning provided by AI.") }}
+            />
           </div>
         </div>
       )}

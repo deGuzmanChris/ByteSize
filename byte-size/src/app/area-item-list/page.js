@@ -72,16 +72,13 @@ export function AreaItemList({ areaName, onBack }) {
     const item = items[idx];
     let newCount = areaCountInputs[idx];
     if (newCount === undefined || newCount === null) return;
-    setItems(items => items.map((it, i) => i === idx ? { ...it, areaCount: newCount } : it));
-    setAreaCountInputs(inputs => ({ ...inputs, [idx]: newCount }));
+    const normalizedCount = newCount === "" ? 0 : Number(newCount);
+    setItems(items => items.map((it, i) => i === idx ? { ...it, areaCount: normalizedCount } : it));
+    setAreaCountInputs(inputs => ({ ...inputs, [idx]: normalizedCount }));
     if (item.id) {
-      await updateInventoryItem(item.id, { ...item, areaCount: newCount });
+      await updateInventoryItem(item.id, { areaCount: normalizedCount });
       setSavedStatus(status => ({ ...status, [idx]: true }));
       setTimeout(() => setSavedStatus(status => ({ ...status, [idx]: false })), 1200);
-      if (newCount === "") {
-        setAreaCountInputs(inputs => ({ ...inputs, [idx]: undefined }));
-        setItems(items => items.map((it, i) => i === idx ? { ...it, areaCount: "" } : it));
-      }
     }
   };
 
@@ -121,7 +118,7 @@ export function AreaItemList({ areaName, onBack }) {
   };
 
   return (
-    <section>
+    <section style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between mb-6 gap-2">
         <div className="flex items-center gap-2">
@@ -172,14 +169,19 @@ export function AreaItemList({ areaName, onBack }) {
         <ul className="space-y-4">
           {filteredItems.map((item, idx) => (
             <li key={idx}>
-              <div className={`${cardBg} ${cardText} rounded-xl shadow-md flex items-center min-h-18 h-18 px-6 transition-colors duration-200`}>
-                <span className="flex-1 font-semibold text-base">{item.name}</span>
-                <div className="flex items-center gap-1 ml-1" style={{ minWidth: "100px" }}>
+              <div className={`${cardBg} ${cardText} rounded-xl shadow-md flex flex-col gap-2 px-4 py-3 transition-colors duration-200 sm:min-h-18 sm:h-18 sm:flex-row sm:items-center sm:py-0`}>
+                <span
+                  className="w-full truncate font-semibold text-base leading-tight sm:flex-1 sm:min-w-0"
+                  title={item.name}
+                >
+                  {item.name}
+                </span>
+                <div className="flex w-full items-center justify-end gap-1 shrink-0 border-t border-black/10 pt-2 dark:border-white/10 sm:w-auto sm:border-0 sm:pt-0">
                   <input
                     type="number"
                     maxLength={2}
-                    className={`${mainCardBg} ${darkMode ? "text-white" : "text-black"} border-[#555] w-15 h-8 p-1 rounded border focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center placeholder:opacity-60 placeholder:font-semibold`}
-                    style={{ MozAppearance: "textfield", marginRight: "2px" }}
+                    className={`${mainCardBg} ${darkMode ? "text-white" : "text-black"} border-[#555] w-10 h-11 p-1 rounded border focus:outline-none focus:ring-2 focus:ring-[#8fa481] appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm text-center placeholder:opacity-60 placeholder:font-semibold sm:h-7`}
+                    style={{ MozAppearance: "textfield" }}
                     placeholder="Qty"
                     value={(() => {
                       let v = areaCountInputs[idx];
@@ -190,40 +192,43 @@ export function AreaItemList({ areaName, onBack }) {
                     onChange={e => handleAreaCountInputChange(idx, e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") handleAreaCountEnter(idx); }}
                   />
-                  {item.inventoryUnit && (
-                    <span className={`text-xs font-bold px-1 rounded ${darkMode ? cardBg + " text-white" : cardBg + " text-black"} whitespace-nowrap min-w-9 text-left`}>
-                      {item.inventoryUnit}
-                    </span>
-                  )}
+                  <span className={`text-xs font-bold px-1 rounded ${darkMode ? cardBg + " text-white" : cardBg + " text-black"} whitespace-nowrap w-12 text-left mr-1`}>
+                    {item.inventoryUnit || ""}
+                  </span>
+                  <button
+                    className={`w-16 h-9 rounded transition-colors text-sm mr-1 sm:w-14 sm:h-7 ${savedStatus[idx] ? "bg-green-500 text-white" : `${sidebarActiveBg} ${text}`}`}
+                    onClick={() => handleAreaCountEnter(idx)}
+                    title="Enter Quantity"
+                  >
+                    Enter
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      className={`h-9 w-9 p-0 sm:p-2 sm:h-auto sm:w-auto ${mainCardBg} border border-[#b7c9a6] text-[#355b2c] rounded-full shadow transition-colors flex items-center justify-center`}
+                      onClick={() => setViewItem(item)}
+                      title="View Info"
+                      aria-label={`View info for ${item.name}`}
+                    >
+                      <FaInfoCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </button>
+                    <button
+                      className="h-9 w-9 p-0 sm:p-2 sm:h-auto sm:w-auto bg-yellow-100 text-yellow-700 rounded-full shadow hover:bg-yellow-200 transition-colors flex items-center justify-center"
+                      onClick={() => setEditItemIdx(idx)}
+                      title="Edit Info"
+                      aria-label={`Edit ${item.name}`}
+                    >
+                      <FaPen className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </button>
+                    <button
+                      className="h-9 w-9 p-0 sm:p-2 sm:h-auto sm:w-auto bg-[#d9534f] text-white rounded-full shadow hover:bg-[#c9302c] transition-colors flex items-center justify-center"
+                      onClick={() => setDeleteItemIdx(idx)}
+                      title="Delete Item"
+                      aria-label={`Delete ${item.name}`}
+                    >
+                      <FaTrash className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  className={`ml-1 px-2 py-1 rounded transition-colors ${savedStatus[idx] ? "bg-green-500 text-white" : `${sidebarActiveBg} ${text}`}`}
-                  onClick={() => handleAreaCountEnter(idx)}
-                  title="Enter Quantity"
-                >
-                  Enter
-                </button>
-                <button
-                  className={`ml-2 p-2 ${mainCardBg} border border-[#b7c9a6] text-[#355b2c] rounded-full shadow transition-colors flex items-center justify-center`}
-                  onClick={() => setViewItem(item)}
-                  title="View Info"
-                >
-                  <FaInfoCircle className="w-5 h-5" />
-                </button>
-                <button
-                  className="ml-2 p-2 bg-yellow-100 text-yellow-700 rounded-full shadow hover:bg-yellow-200 transition-colors flex items-center justify-center"
-                  onClick={() => setEditItemIdx(idx)}
-                  title="Edit Info"
-                >
-                  <FaPen className="w-5 h-5" />
-                </button>
-                <button
-                  className="ml-2 p-2 bg-[#d9534f] text-white rounded-full shadow hover:bg-[#c9302c] transition-colors flex items-center justify-center"
-                  onClick={() => setDeleteItemIdx(idx)}
-                  title="Delete Item"
-                >
-                  <FaTrash className="w-5 h-5" />
-                </button>
 
                 {deleteItemIdx === idx && (
                   <DeleteConfirmModal

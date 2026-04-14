@@ -52,21 +52,22 @@ service cloud.firestore {
 
     // --- Users collection ---
     match /users/{userId} {
-      // Public read needed for forgot-password email lookup (pre-auth)
+      // Public read allowed — needed for login page email lookup (forgot password, Google OAuth check)
+      // Sensitive fields (name) are encrypted at the application layer
       allow read: if true;
 
       // Only admins can create users; data must be valid
       allow create: if isAdmin() && validUserData(request.resource.data);
 
-      // Admin can update any user; users can update their own doc
-      // But role and createdAt are immutable (only admin can change role)
-      allow update: if isAdmin()
+      // Admin can update any user (role, name, etc.)
+      allow update: if (isAdmin()
           && validUserData(request.resource.data)
-          && request.resource.data.createdAt == resource.data.createdAt
-        || isOwner(userId)
+          && request.resource.data.createdAt == resource.data.createdAt)
+        // Users can update their own doc but cannot change role, email, or createdAt
+        || (isOwner(userId)
           && request.resource.data.role == resource.data.role
           && request.resource.data.email == resource.data.email
-          && request.resource.data.createdAt == resource.data.createdAt;
+          && request.resource.data.createdAt == resource.data.createdAt);
 
       // Only admins can delete users
       allow delete: if isAdmin();
