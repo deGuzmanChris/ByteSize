@@ -69,8 +69,33 @@ Only respond to inventory-related questions. If the additional context is unrela
       const text = await generateForecast(prompt);
       setResponse(text);
     } catch (err) {
-      console.error(err);
-      setError("Failed to generate forecast. Please try again.");
+      const isOverloaded =
+        err?.message?.includes("429") ||
+        err?.message?.includes("overloaded") ||
+        err?.message?.includes("RESOURCE_EXHAUSTED");
+
+      if (!isOverloaded) console.error(err);
+
+      setChartData(previousState.chartData);
+      setDetailedReasoning(previousState.detailedReasoning);
+      setHasGenerated(previousState.hasGenerated);
+      setHolidays(previousState.holidays);
+      setResponse(previousState.response);
+
+      try {
+        await loadSavedForecast();
+        setError(
+          isOverloaded
+            ? "Gemini is currently overloaded. Showing your latest saved forecast — try again in a moment."
+            : "Failed to generate a new forecast. Showing the latest saved forecast."
+        );
+      } catch {
+        setError(
+          isOverloaded
+            ? "Gemini is currently overloaded. Please try again in a moment."
+            : "Failed to generate forecast. Please try again."
+        );
+      }
     } finally {
       setLoading(false);
     }
