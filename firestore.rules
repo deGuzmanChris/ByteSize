@@ -102,5 +102,11 @@ service cloud.firestore {
       // No updates or deletes — this is an immutable audit trail
       allow update, delete: if false;
     }
+
+    // --- Forecasts collection (written by Admin SDK, read by API route) ---
+    // Admin SDK bypasses these rules, but define them for any direct client reads
+    match /forecasts/{forecastId} {
+      allow read, write: if isAuthenticated();
+    }
   }
 }

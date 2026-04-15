@@ -618,14 +618,36 @@ export default function ForecasterAI() {
         setError("Forecast generated, but it could not be saved.");
       }
     } catch (err) {
-      const isAiServiceIssue = err?.code === "AI_BUSY" || err?.code === "AI_QUOTA";
+const isAiServiceIssue = err?.code === "AI_BUSY" || err?.code === "AI_QUOTA";
+const isBlocked =
+  err?.message?.includes("SAFETY") ||
+  err?.message?.includes("blocked") ||
+  err?.message?.includes("finish_reason");
+const isOffline =
+  err?.message?.includes("Failed to fetch") ||
+  err?.message?.includes("NetworkError") ||
+  err?.message?.includes("offline");
 
-      if (isAiServiceIssue) {
-        const nextCooldown = err?.retryAfterSeconds || MIN_REQUEST_COOLDOWN_SECONDS;
-        setRequestCooldown(
-          Math.max(MIN_REQUEST_COOLDOWN_SECONDS, Math.min(nextCooldown, MAX_REQUEST_COOLDOWN_SECONDS))
-        );
-      }
+if (!isAiServiceIssue) console.error(err);
+
+if (isAiServiceIssue) {
+  const nextCooldown = err?.retryAfterSeconds || MIN_REQUEST_COOLDOWN_SECONDS;
+  setRequestCooldown(
+    Math.max(MIN_REQUEST_COOLDOWN_SECONDS, Math.min(nextCooldown, MAX_REQUEST_COOLDOWN_SECONDS))
+  );
+  setError(
+    err?.code === "AI_QUOTA"
+      ? err.message  // already has "retry in Xs" from classifyGeminiError
+      : "The AI forecast service is temporarily busy. Please try again in a minute."
+  );
+} else if (isBlocked) {
+  setError("The forecast request was blocked by the AI safety filter. Try adjusting your notes.");
+} else if (isOffline) {
+  setError("Network error — check your connection and try again.");
+} else {
+  setError("Failed to generate forecast. Please try again.");
+}
+
 
       if (!isAiServiceIssue) {
         console.error(err);
