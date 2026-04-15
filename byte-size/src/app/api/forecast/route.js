@@ -23,9 +23,32 @@ function toDate(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function getDayKey(value = new Date()) {
+  const date = toDate(value);
+  if (!date) return null;
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getNextDailyReset(now = new Date()) {
+  const resetAt = new Date(now);
+  resetAt.setHours(24, 0, 0, 0);
+  return resetAt;
+}
+
 function isForecastExpired(forecast, now) {
+  const currentDayKey = getDayKey(now);
+  const forecastDayKey = forecast.dayKey || getDayKey(forecast.createdAt);
+
+  if (forecastDayKey && currentDayKey && forecastDayKey !== currentDayKey) {
+    return true;
+  }
+
   const expiresAt = toDate(forecast.expiresAt);
-  if (!expiresAt) return true;
+  if (!expiresAt) return false;
   return expiresAt.getTime() <= now.getTime();
 }
 
@@ -61,7 +84,8 @@ export async function POST(req) {
     // const userId = user.uid;
     const userId = input.userId || "anonymous";
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+    const expiresAt = getNextDailyReset(now);
+    const dayKey = getDayKey(now);
 
     // Enforce consistent key order for inputKey
     const orderedInput = normalizeForecastInput(input);
@@ -71,6 +95,7 @@ export async function POST(req) {
       userId,
       input: orderedInput,
       inputKey,
+      dayKey,
       result,
       createdAt: Timestamp.fromDate(now),
       expiresAt: Timestamp.fromDate(expiresAt),
@@ -89,6 +114,8 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId") || "anonymous";
+    const includeExpired = searchParams.get("includeExpired") === "true";
+    const checkOnly = searchParams.get("checkOnly") === "true";
     const forecastsRef = db.collection("forecasts");
     const now = new Date();
     const hasInputFilters = ["timeRange", "focus", "volume", "notes"].some((key) =>
@@ -97,6 +124,10 @@ export async function GET(req) {
 
     const snapshot = await forecastsRef.where("userId", "==", userId).get();
     if (snapshot.empty) {
+      if (checkOnly) {
+        return jsonNoStore({ success: true, exists: false, forecast: null, resetAt: null });
+      }
+
       return jsonNoStore({ success: false, forecast: null });
     }
 
@@ -109,9 +140,8 @@ export async function GET(req) {
         }
       : null;
 
-    const forecasts = snapshot.docs
+    const matchingForecasts = snapshot.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
-      .filter((forecast) => !isForecastExpired(forecast, now))
       .filter((forecast) => {
         if (!requestedInput) return true;
         return matchesInputFilters(forecast, userId, requestedInput);
@@ -122,11 +152,28 @@ export async function GET(req) {
         return rightCreatedAt - leftCreatedAt;
       });
 
-    if (forecasts.length === 0) {
+    const activeForecast = matchingForecasts.find((forecast) => !isForecastExpired(forecast, now));
+
+    if (checkOnly) {
+      return jsonNoStore({
+        success: true,
+        exists: Boolean(activeForecast),
+        forecast: activeForecast || null,
+        resetAt: activeForecast?.expiresAt || null,
+      });
+    }
+    const latestForecast = matchingForecasts[0] || null;
+    const selectedForecast = activeForecast || (includeExpired ? latestForecast : null);
+
+    if (!selectedForecast) {
       return jsonNoStore({ success: false, forecast: null });
     }
 
-    return jsonNoStore({ success: true, forecast: forecasts[0] });
+    return jsonNoStore({
+      success: true,
+      forecast: selectedForecast,
+      stale: !activeForecast && Boolean(latestForecast),
+    });
   } catch (err) {
     return jsonNoStore({ success: false, error: err.message }, { status: 500 });
   }
